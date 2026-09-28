@@ -1,0 +1,290 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Justificar Política - Compliance CIS{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .justify-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+    
+    .policy-info {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    
+    .form-card {
+        background: white;
+        border-radius: 10px;
+        padding: 2rem;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #374151;
+    }
+    
+    .form-input, .form-textarea {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.2s;
+    }
+    
+    .form-input:focus, .form-textarea:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .form-textarea {
+        resize: vertical;
+        min-height: 120px;
+    }
+    
+    .file-upload {
+        border: 2px dashed #d1d5db;
+        border-radius: 8px;
+        padding: 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .file-upload:hover {
+        border-color: #667eea;
+        background: #f9fafb;
+    }
+    
+    .file-upload.dragover {
+        border-color: #667eea;
+        background: #ede9fe;
+    }
+    
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        font-size: 1rem;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-block;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-secondary {
+        background: #e5e7eb;
+        color: #374151;
+    }
+    
+    .btn-secondary:hover {
+        background: #d1d5db;
+    }
+    
+    .alert {
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+    }
+    
+    .alert-warning {
+        background: #fef3c7;
+        border-left: 4px solid #f59e0b;
+        color: #92400e;
+    }
+    
+    .existing-file {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem;
+        background: #f9fafb;
+        border-radius: 6px;
+        margin-top: 0.5rem;
+    }
+    
+    .existing-file i {
+        font-size: 1.5rem;
+        margin-right: 0.75rem;
+        color: #667eea;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="justify-container">
+    <!-- Policy Information -->
+    <div class="policy-info">
+        <h1 style="font-size: 1.75rem; margin-bottom: 1rem;">
+            <i class="bi bi-shield-exclamation"></i> Justificar Política Fallida
+        </h1>
+        <div style="opacity: 0.9;">
+            <p style="margin: 0.5rem 0;"><strong>Asset:</strong> {{ asset.hostname }}</p>
+            <p style="margin: 0.5rem 0;"><strong>Capa:</strong> {{ layer.get_layer_type_display }}</p>
+            <p style="margin: 0.5rem 0;"><strong>Política:</strong> {{ policy.section }} {{ policy.recommendation }}</p>
+            <p style="margin: 0.5rem 0;"><strong>Título:</strong> {{ policy.title }}</p>
+        </div>
+    </div>
+    
+    {% if existing_exclusion %}
+    <div class="alert alert-warning">
+        <i class="bi bi-info-circle"></i>
+        <strong>Nota:</strong> Esta política ya tiene una justificación {{ existing_exclusion.is_active|yesno:"activa,inactiva" }}. 
+        Al guardar, se actualizará la justificación existente.
+    </div>
+    {% endif %}
+    
+    <!-- Justification Form -->
+    <div class="form-card">
+        <form method="post" enctype="multipart/form-data" id="justifyForm">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label class="form-label" for="reason">
+                    <i class="bi bi-pencil-square"></i> Razón de la Justificación *
+                </label>
+                <textarea 
+                    name="reason" 
+                    id="reason" 
+                    class="form-textarea" 
+                    required
+                    placeholder="Explique detalladamente por qué esta política no aplica o no puede cumplirse. Incluya controles compensatorios si existen."
+                >{% if existing_exclusion %}{{ existing_exclusion.reason }}{% endif %}</textarea>
+                <small style="color: #6b7280; display: block; margin-top: 0.5rem;">
+                    Mínimo 50 caracteres. Sea específico y detallado.
+                </small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="justification_file">
+                    <i class="bi bi-paperclip"></i> Evidencia de Justificación (Opcional)
+                </label>
+                
+                {% if existing_exclusion.justification_file %}
+                <div class="existing-file">
+                    <i class="bi bi-file-earmark-check"></i>
+                    <div>
+                        <div style="font-weight: 600; color: #374151;">Archivo actual</div>
+                        <a href="{{ existing_exclusion.justification_file.url }}" target="_blank" style="color: #667eea; text-decoration: none;">
+                            Ver archivo actual <i class="bi bi-box-arrow-up-right"></i>
+                        </a>
+                    </div>
+                </div>
+                <p style="margin: 0.75rem 0; color: #6b7280; font-size: 0.875rem;">
+                    Puede subir un nuevo archivo para reemplazar el actual (opcional).
+                </p>
+                {% endif %}
+                
+                <div class="file-upload" id="fileUpload">
+                    <input type="file" name="justification_file" id="justification_file" style="display: none;" 
+                           accept=".pdf,.png,.jpg,.jpeg,.docx,.doc,.xlsx,.xls,.eml">
+                    <i class="bi bi-cloud-upload" style="font-size: 3rem; color: #d1d5db; display: block; margin-bottom: 0.5rem;"></i>
+                    <p style="margin: 0.5rem 0; font-weight: 600; color: #374151;">
+                        Haga clic para seleccionar o arrastre un archivo aquí
+                    </p>
+                    <p style="margin: 0; font-size: 0.875rem; color: #6b7280;">
+                        PDF, imágenes, Word, Excel o correo (.eml) - Máximo 10MB
+                    </p>
+                    <div id="fileName" style="margin-top: 1rem; font-weight: 600; color: #667eea;"></div>
+                </div>
+            </div>
+            
+            <div class="alert" style="background: #dbeafe; border-left: 4px solid #3b82f6; color: #1e40af;">
+                <i class="bi bi-info-circle"></i>
+                <strong>Importante:</strong>
+                <ul style="margin: 0.5rem 0 0 1.5rem; padding: 0;">
+                    <li>Esta política NO contará para el cálculo de compliance mientras esté justificada</li>
+                    <li>La justificación se aplica a escaneos actuales y futuros</li>
+                    <li>Puede desactivar la justificación en cualquier momento</li>
+                    <li>Se recomienda adjuntar evidencia que respalde la justificación</li>
+                </ul>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> Guardar Justificación
+                </button>
+                <a href="{% url 'asset_detail' asset.id %}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // File upload handling
+    const fileUpload = document.getElementById('fileUpload');
+    const fileInput = document.getElementById('justification_file');
+    const fileName = document.getElementById('fileName');
+    
+    fileUpload.addEventListener('click', () => fileInput.click());
+    
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            const file = e.target.files[0];
+            fileName.textContent = `Archivo seleccionado: ${file.name}`;
+        }
+    });
+    
+    // Drag and drop
+    fileUpload.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        fileUpload.classList.add('dragover');
+    });
+    
+    fileUpload.addEventListener('dragleave', () => {
+        fileUpload.classList.remove('dragover');
+    });
+    
+    fileUpload.addEventListener('drop', (e) => {
+        e.preventDefault();
+        fileUpload.classList.remove('dragover');
+        
+        if (e.dataTransfer.files.length > 0) {
+            fileInput.files = e.dataTransfer.files;
+            const file = e.dataTransfer.files[0];
+            fileName.textContent = `Archivo seleccionado: ${file.name}`;
+        }
+    });
+    
+    // Form validation
+    document.getElementById('justifyForm').addEventListener('submit', (e) => {
+        const reason = document.getElementById('reason').value.trim();
+        
+        if (reason.length < 50) {
+            e.preventDefault();
+            alert('La razón debe tener al menos 50 caracteres. Por favor, sea más específico.');
+            return false;
+        }
+    });
+</script>
+{% endblock %}

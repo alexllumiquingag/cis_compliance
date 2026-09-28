@@ -1,0 +1,30 @@
+# Entornos virtuales locales
+venv/
+
+# Archivos estáticos generados (producción)
+static/
+staticfiles/
+
+# Caché de Python y Django
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Archivos de configuración local y credenciales
+cis_project/file.env
+.env
+
+# Archivos de logs de Django
+logs/
+*.log
+
+# Archivos de base de datos o backups locales en la carpeta
+*.dump
+*.sql
+*.sqlite3
+
+# Ignorar todo el contenido de la carpeta media
+media/**/*
+
+# Pero no ignores los archivos .gitkeep que usaremos para mantener la estructura
+!media/**/.gitkeep

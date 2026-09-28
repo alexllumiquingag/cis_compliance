@@ -1,0 +1,81 @@
+{% if messages %}
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} mb-3" role="alert">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        {% if message.tags == 'success' %}
+                            <i class="bi bi-check-circle-fill mr-2"></i>
+                        {% elif message.tags == 'error' or message.tags == 'danger' %}
+                            <i class="bi bi-exclamation-circle-fill mr-2"></i>
+                        {% elif message.tags == 'warning' %}
+                            <i class="bi bi-exclamation-triangle-fill mr-2"></i>
+                        {% else %}
+                            <i class="bi bi-info-circle-fill mr-2"></i>
+                        {% endif %}
+                        <span>{{ message }}</span>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" 
+                            class="text-gray-400 hover:text-gray-600 ml-4">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    
+    <style>
+        .alert {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        .alert-success {
+            background-color: #d1fae5;
+            border-color: #10b981;
+            color: #065f46;
+        }
+        
+        .alert-error, .alert-danger {
+            background-color: #fee2e2;
+            border-color: #ef4444;
+            color: #991b1b;
+        }
+        
+        .alert-warning {
+            background-color: #fef3c7;
+            border-color: #f59e0b;
+            color: #92400e;
+        }
+        
+        .alert-info {
+            background-color: #dbeafe;
+            border-color: #3b82f6;
+            color: #1e40af;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+    
+    <script>
+        // Auto-cerrar mensajes después de 5 segundos
+        setTimeout(() => {
+            document.querySelectorAll('.alert').forEach(alert => {
+                alert.style.transition = 'opacity 0.5s';
+                alert.style.opacity = '0';
+                setTimeout(() => alert.remove(), 500);
+            });
+        }, 5000);
+    </script>
+{% endif %}

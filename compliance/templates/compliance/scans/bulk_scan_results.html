@@ -1,0 +1,408 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Importación Bulk - Compliance CIS{% endblock %}
+
+{% block extra_styles %}
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+        }
+        
+        .results-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        
+        .results-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .stat-card.success .stat-value { color: #10b981; }
+        .stat-card.warning .stat-value { color: #f59e0b; }
+        .stat-card.danger .stat-value { color: #ef4444; }
+        .stat-card.info .stat-value { color: #3b82f6; }
+        
+        .results-table {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .table thead {
+            background: #f9fafb;
+        }
+        
+        .table th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .table td {
+            padding: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .table tbody tr:hover {
+            background: #f9fafb;
+        }
+        
+        .compliance-badge {
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: inline-block;
+        }
+        
+        .compliance-high { 
+            background-color: #d1fae5; 
+            color: #065f46; 
+        }
+        
+        .compliance-medium { 
+            background-color: #fef3c7; 
+            color: #92400e; 
+        }
+        
+        .compliance-low { 
+            background-color: #fee2e2; 
+            color: #991b1b; 
+        }
+        
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .badge.bg-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .badge.bg-danger {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .warnings-section, .errors-section {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+        }
+        
+        .alert {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            position: relative;
+        }
+        
+        .alert-warning {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            color: #92400e;
+        }
+        
+        .alert-danger {
+            background: #fee2e2;
+            border: 1px solid #ef4444;
+            color: #991b1b;
+        }
+        
+        .alert-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .btn {
+            padding: 0.875rem 2rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-outline-secondary {
+            background: white;
+            color: #6b7280;
+            border: 2px solid #d1d5db;
+        }
+        
+        .btn-outline-secondary:hover {
+            background: #f3f4f6;
+        }
+        
+        .btn-outline-primary {
+            background: white;
+            color: #3b82f6;
+            border: 2px solid #3b82f6;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+        
+        .btn-outline-primary:hover {
+            background: #3b82f6;
+            color: white;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<!-- Mensajes del Sistema -->
+{% include 'partials/_messages.html' %}
+
+
+
+
+    <!-- Main Content -->
+    <div class="results-container">
+        <!-- Header -->
+        <div class="results-header">
+            <h1 style="font-size: 2rem; margin-bottom: 1rem;">
+                {% if success %}
+                    <i class="bi bi-check-circle"></i> Importación Completada
+                {% else %}
+                    <i class="bi bi-exclamation-triangle"></i> Importación con Errores
+                {% endif %}
+            </h1>
+            <p style="margin: 0; opacity: 0.9;">
+                Benchmark: <strong>{{ benchmark_name }}</strong> | 
+                Capa: <strong>{{ layer_type }}</strong> | 
+                Fecha: <strong>{{ scan_date }}</strong>
+            </p>
+        </div>
+        
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card info">
+                <div class="stat-value" data-value="{{ stats.servers_found }}">0</div>
+                <div class="stat-label">
+                    <i class="bi bi-hdd-network"></i> Hosts Encontrados
+                </div>
+            </div>
+            
+            <div class="stat-card success">
+                <div class="stat-value" data-value="{{ stats.servers_imported }}">0</div>
+                <div class="stat-label">
+                    <i class="bi bi-check-circle"></i> Procesados Exitosamente
+                </div>
+            </div>
+            
+            <div class="stat-card warning">
+                <div class="stat-value" data-value="{{ stats.servers_skipped }}">0</div>
+                <div class="stat-label">
+                    <i class="bi bi-skip-forward"></i> Hosts Omitidos
+                </div>
+            </div>
+            
+            <div class="stat-card danger">
+                <div class="stat-value" data-value="{{ stats.errors }}">0</div>
+                <div class="stat-label">
+                    <i class="bi bi-exclamation-circle"></i> Errores
+                </div>
+            </div>
+        </div>
+        
+        <!-- Scans Created Table -->
+        {% if scans_created %}
+        <div class="results-table">
+            <h4 style="margin-bottom: 1.5rem; font-size: 1.25rem; font-weight: 600;">
+                <i class="bi bi-table text-blue-600"></i>
+                Hosts Procesados ({{ scans_created|length }})
+            </h4>
+            
+            <div style="overflow-x: auto;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th><i class="bi bi-server"></i> Hostname</th>
+                            <th style="text-align: center;"><i class="bi bi-percent"></i> Compliance</th>
+                            <th style="text-align: center;"><i class="bi bi-check-circle"></i> Passed</th>
+                            <th style="text-align: center;"><i class="bi bi-x-circle"></i> Failed</th>
+                            <th style="text-align: center;"><i class="bi bi-hash"></i> Scan ID</th>
+                            <th style="text-align: center;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for scan in scans_created %}
+                        <tr>
+                            <td>
+                                <strong>{{ scan.hostname }}</strong>
+                            </td>
+                            <td style="text-align: center;">
+                                {% if scan.compliance >= 90 %}
+                                    <span class="compliance-badge compliance-high">
+                                        {{ scan.compliance|floatformat:2 }}%
+                                    </span>
+                                {% elif scan.compliance >= 70 %}
+                                    <span class="compliance-badge compliance-medium">
+                                        {{ scan.compliance|floatformat:2 }}%
+                                    </span>
+                                {% else %}
+                                    <span class="compliance-badge compliance-low">
+                                        {{ scan.compliance|floatformat:2 }}%
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: center;">
+                                <span class="badge bg-success">{{ scan.passed }}</span>
+                            </td>
+                            <td style="text-align: center;">
+                                <span class="badge bg-danger">{{ scan.failed }}</span>
+                            </td>
+                            <td style="text-align: center;">
+                                <code style="background: #f3f4f6; padding: 0.25rem 0.5rem; border-radius: 4px;">
+                                    #{{ scan.scan_id }}
+                                </code>
+                            </td>
+                            <td style="text-align: center;">
+                                <a href="/admin/compliance/scan/{{ scan.scan_id }}/change/" 
+                                   class="btn-outline-primary" 
+                                   target="_blank">
+                                    <i class="bi bi-eye"></i> Ver Detalles
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Warnings Section -->
+        {% if warnings %}
+        <div class="warnings-section">
+            <h5 style="color: #f59e0b; margin-bottom: 1rem; font-size: 1.125rem; font-weight: 600;">
+                <i class="bi bi-exclamation-triangle"></i>
+                Advertencias ({{ warnings|length }})
+            </h5>
+            <div class="alert-list">
+                {% for warning in warnings %}
+                    <div class="alert alert-warning">
+                        <small>{{ warning }}</small>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Errors Section -->
+        {% if errors %}
+        <div class="errors-section">
+            <h5 style="color: #ef4444; margin-bottom: 1rem; font-size: 1.125rem; font-weight: 600;">
+                <i class="bi bi-x-circle"></i>
+                Errores ({{ errors|length }})
+            </h5>
+            <div class="alert-list">
+                {% for error in errors %}
+                    <div class="alert alert-danger">
+                        <small>{{ error }}</small>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Actions -->
+        <div style="text-align: center; margin-top: 3rem;">
+            <a href="/compliance/bulk-upload/" class="btn btn-primary">
+                <i class="bi bi-arrow-repeat"></i> Procesar Otro CSV
+            </a>
+            <a href="/compliance/dashboard/" class="btn btn-outline-secondary" style="margin-left: 1rem;">
+                <i class="bi bi-speedometer2"></i> Ir al Dashboard
+            </a>
+        </div>
+    </div>
+{% endblock %}
+{% block extra_scripts %}
+    <script>
+        // Animación de números
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.stat-value').forEach(el => {
+                const target = parseInt(el.getAttribute('data-value'));
+                let current = 0;
+                const increment = Math.ceil(target / 20);
+                const timer = setInterval(() => {
+                    current += increment;
+                    if (current >= target) {
+                        el.textContent = target;
+                        clearInterval(timer);
+                    } else {
+                        el.textContent = current;
+                    }
+                }, 50);
+            });
+        });
+    </script>
+
+{% endblock %}

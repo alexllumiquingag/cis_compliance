@@ -1,0 +1,78 @@
+<footer class="bg-white border-t border-gray-200 mt-12">
+    <div class="max-w-7xl mx-auto px-4 py-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-6">
+            <!-- Información del Sistema -->
+            <div>
+                <h3 class="text-sm font-semibold text-gray-900 mb-3">
+                    <i class="bi bi-shield-check text-blue-600"></i>
+                    Sistema de Compliance CIS
+                </h3>
+                <p class="text-xs text-gray-600">
+                    Plataforma integral para la gestión y monitoreo de hardenización de infraestructura según estándares CIS.
+                </p>
+            </div>
+            
+            <!-- Enlaces Rápidos -->
+            <div>
+                <h3 class="text-sm font-semibold text-gray-900 mb-3">Enlaces Rápidos</h3>
+                <ul class="space-y-2 text-xs">
+                    <li>
+                        <a href="{% url 'compliance_dashboard' %}" class="text-gray-600 hover:text-blue-600">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'assets_list' %}" class="text-gray-600 hover:text-blue-600">
+                            <i class="bi bi-hdd-stack"></i> Assets
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'bulk_nessus_upload' %}" class="text-gray-600 hover:text-blue-600">
+                            <i class="bi bi-cloud-upload"></i> Bulk Import
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'alerts_list' %}" class="text-gray-600 hover:text-blue-600">
+                            <i class="bi bi-bell"></i> Alertas
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- Soporte -->
+            <div>
+                <h3 class="text-sm font-semibold text-gray-900 mb-3">Soporte</h3>
+                <ul class="space-y-2 text-xs text-gray-600">
+                    <li>
+                        <i class="bi bi-envelope"></i>
+                        Email: soporte@compliance.local
+                    </li>
+                    <li>
+                        <i class="bi bi-telephone"></i>
+                        Tel: +593 (0) 123-4567
+                    </li>
+                    <li>
+                        <i class="bi bi-question-circle"></i>
+                        <a href="/admin/" class="hover:text-blue-600">Documentación</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Copyright -->
+        <div class="border-t border-gray-200 pt-4 text-center">
+            <p class="text-xs text-gray-500">
+                &copy; {% now "Y" %} Sistema de Compliance CIS - Todos los derechos reservados
+                <span class="mx-2">|</span>
+                <span class="text-blue-600">v2.0.0</span>
+                <span class="mx-2">|</span>
+                Última actualización: <span id="last-update"></span>
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        // Actualizar timestamp
+        document.getElementById('last-update').textContent = new Date().toLocaleString('es-EC');
+    </script>
+</footer>

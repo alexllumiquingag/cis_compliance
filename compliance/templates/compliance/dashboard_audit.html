@@ -1,0 +1,977 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard Auditoría - Compliance CIS{% endblock %}
+
+{% block extra_styles %}
+<style>
+    body {
+        background: #f5f7fa;
+    }
+
+    .audit-container {
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .header-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 30px;
+        margin-bottom: 30px;
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    }
+
+    .header-card h1 {
+        font-size: 2rem;
+        margin-bottom: 10px;
+    }
+
+    .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            background: white;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+    .tab {
+           padding: 15px 30px;
+           border: none;
+           background: transparent;
+           border-radius: 8px;
+           cursor: pointer;
+           font-size: 1rem;
+           font-weight: 600;
+           color: #64748b;
+           transition: all 0.3s;
+    }
+
+    .tab:hover {
+           background: #f1f5f9;
+    }
+
+    .tab.active {
+           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+           color: white;
+    }
+
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .kpi-card {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .kpi-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+    }
+
+    .kpi-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+    }
+
+
+    .kpi-icon {
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+        opacity: 0.2;
+        position: absolute;
+        right: 20px;
+        top: 20px;
+    }
+
+    .kpi-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .kpi-label {
+        color: #64748b;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 600;
+    }
+
+    .kpi-detail {
+        font-size: 0.85rem;
+        margin-top: 10px;
+        color: #64748b;
+        font-weight: 600;
+    }
+
+    .chart-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .chart-card {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    }
+
+    .chart-card h3 {
+        margin-bottom: 20px;
+        color: #1e293b;
+        font-size: 1.1rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .chart-container {
+        position: relative;
+        height: 300px;
+    }
+
+    .table-card {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+    }
+
+    .table-card h3 {
+        margin-bottom: 20px;
+        color: #1e293b;
+        font-size: 1.1rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: #f8fafc;
+    }
+
+    th {
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+        color: #475569;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    td {
+        padding: 12px;
+        border-bottom: 1px solid #f1f5f9;
+        color: #334155;
+    }
+
+    tbody tr:hover {
+        background: #f8fafc;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .badge-success {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .badge-warning {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .badge-danger {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .badge-pci {
+        background: #2196F3;
+        color: white;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 40px;
+        color: #64748b;
+    }
+
+    .loading-spinner {
+        display: inline-block;
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f4f6;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: #94a3b8;
+    }
+
+    .link-btn {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 600;
+        transition: color 0.2s;
+    }
+
+    .link-btn:hover {
+        color: #764ba2;
+        text-decoration: underline;
+    }
+
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .pagination button {
+        padding: 8px 16px;
+        border: 1px solid #e2e8f0;
+        background: white;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .pagination button:hover:not(:disabled) {
+        background: #f8fafc;
+        border-color: #667eea;
+    }
+
+    .pagination button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .pagination span {
+        color: #64748b;
+        font-size: 0.9rem;
+    }
+
+    .export-btn {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+    }
+
+    .export-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
+    }
+
+    .refresh-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .refresh-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(245, 158, 11, 0.3);
+    }
+
+    .alert-box {
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border-left: 4px solid;
+    }
+
+    .alert-warning {
+        background: #fef3c7;
+        border-color: #667eea;
+        color: #92400e;
+    }
+
+    .alert-info {
+        background: #dbeafe;
+        border-color: #3b82f6;
+        color: #1e40af;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="audit-container">
+
+    <div class="tabs">
+        <a href="{% url 'executive_dashboard' %}" class="nav-link">
+            <button class="tab active">
+                📊 Dashboard Ejecutivo
+            </button>
+        </a>
+        <a href="{% url 'audit_dashboard' %}" class="nav-link">
+            <button class="tab active">
+                🔍 Dashboard Auditoría
+            </button>
+        </a>
+        <a href="{% url 'operator_dashboard' %}" class="nav-link">
+            <button class="tab active">
+                🛠️ Dashboard Operativo
+            </button>
+        </a>
+    </div>
+
+
+    <!-- Header -->
+    <div class="header-card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1>🔍 Dashboard Auditoría</h1>
+                <p style="margin: 0; opacity: 0.9;">Seguimiento de Compliance, Exclusiones y Trazabilidad</p>
+            </div>
+            <button class="refresh-btn" onclick="refreshDashboard()">
+                <i class="bi bi-arrow-clockwise"></i> Actualizar Datos
+            </button>
+        </div>
+    </div>
+
+    <!-- Alert Box -->
+    <div class="alert-box alert-info">
+        <strong><i class="bi bi-info-circle"></i> Nota Importante:</strong>
+        Este dashboard está diseñado para revisiones de auditoría y cumplimiento normativo. 
+        Todas las exclusiones deben estar debidamente justificadas con documentación de respaldo.
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-grid" id="kpiGrid">
+        <div class="loading">
+            <div class="loading-spinner"></div>
+            <p>Cargando métricas...</p>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="chart-grid">
+        <div class="chart-card">
+            <h3><i class="bi bi-shield-check"></i> Cumplimiento PCI vs NO-PCI</h3>
+            <div class="chart-container">
+                <canvas id="pciChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <h3><i class="bi bi-graph-down"></i> Drift desde Línea Base (Top 20)</h3>
+            <div class="chart-container">
+                <canvas id="driftChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Exclusiones -->
+    <div class="table-card">
+        <h3>
+            <span><i class="bi bi-list-check"></i> Exclusiones por Asset</span>
+            <button class="export-btn" onclick="exportExclusions()">
+                <i class="bi bi-file-earmark-excel"></i> Exportar Todo a Excel
+            </button>
+        </h3>
+        <div id="exclusionsTable">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+            </div>
+        </div>
+        <div class="pagination" id="exclusionsPagination"></div>
+    </div>
+
+    <!-- Políticas Failed Sin Justificación -->
+    <div class="table-card">
+        <h3><i class="bi bi-exclamation-triangle text-danger"></i> Políticas Failed Sin Justificación (Assets Hardenizados)</h3>
+        <div id="failedTable">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historial de Cambios Manuales -->
+    <div class="table-card">
+        <h3><i class="bi bi-clock-history"></i> Historial de Cambios Manuales en Líneas Base (Últimos 90 días)</h3>
+        <div id="baselineChangesTable">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    let pciChart, driftChart;
+    let currentExclusionsPage = 1;
+
+    // Cargar todo al inicio
+    document.addEventListener('DOMContentLoaded', function() {
+        loadKPIs();
+        loadPCIChart();
+        loadDriftChart();
+        loadExclusionsTable(1);
+        loadFailedTable();
+        loadBaselineChangesTable();
+    });
+
+    // Función para actualizar todo
+    function refreshDashboard() {
+        const btn = event.target.closest('button');
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Actualizando...';
+        btn.disabled = true;
+
+        Promise.all([
+            loadKPIs(),
+            loadPCIChart(),
+            loadDriftChart(),
+            loadExclusionsTable(currentExclusionsPage),
+            loadFailedTable(),
+            loadBaselineChangesTable()
+        ]).then(() => {
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+        });
+    }
+
+    // Cargar KPIs
+    async function loadKPIs() {
+        try {
+            const response = await fetch('/compliance/api/dashboard/audit-kpis/');
+            const data = await response.json();
+
+            const html = `
+                <div class="kpi-card">
+                    <div class="kpi-icon">⚠️</div>
+                    <div class="kpi-value">${data.failed_without_justification.percentage}%</div>
+                    <div class="kpi-label">Failed Sin Justificación</div>
+                    <div class="kpi-detail">
+                        ${data.failed_without_justification.count} de ${data.failed_without_justification.total_failed} en ${data.failed_without_justification.hardened_assets} assets hardenizados
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-icon">📅</div>
+                    <div class="kpi-value">${data.assets_no_scan.count}</div>
+                    <div class="kpi-label">Assets Sin Escaneo (30d)</div>
+                    <div class="kpi-detail">
+                        ${data.assets_no_scan.percentage}% del total (${data.assets_no_scan.total} assets)
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-icon">📋</div>
+                    <div class="kpi-value">${data.total_exclusions}</div>
+                    <div class="kpi-label">Exclusiones Activas</div>
+                    <div class="kpi-detail">
+                        Total de exclusiones registradas
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-icon">✏️</div>
+                    <div class="kpi-value">${data.manual_baseline_changes}</div>
+                    <div class="kpi-label">Cambios Manuales</div>
+                    <div class="kpi-detail">
+                        Líneas base modificadas (90 días)
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('kpiGrid').innerHTML = html;
+        } catch (error) {
+            console.error('Error loading KPIs:', error);
+            document.getElementById('kpiGrid').innerHTML = `
+                <div class="empty-state">
+                    <i class="bi bi-exclamation-circle" style="font-size: 3rem;"></i>
+                    <p>Error al cargar métricas</p>
+                </div>
+            `;
+        }
+    }
+
+    // Cargar gráfico PCI
+    async function loadPCIChart() {
+        try {
+            const response = await fetch('/compliance/api/dashboard/audit-pci-compliance/');
+            const data = await response.json();
+
+            const ctx = document.getElementById('pciChart');
+            
+            if (pciChart) {
+                pciChart.destroy();
+            }
+
+            pciChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Excelente\n(≥90%)', 'Bueno\n(80-89%)', 'Regular\n(70-79%)', 'Bajo\n(<70%)'],
+                    datasets: [{
+                        label: `PCI (${data.pci.count} assets)`,
+                        data: [
+                            data.pci.distribution.excellent,
+                            data.pci.distribution.good,
+                            data.pci.distribution.fair,
+                            data.pci.distribution.poor
+                        ],
+                        backgroundColor: '#2196F3',
+                        borderWidth: 0
+                    }, {
+                        label: `NO-PCI (${data.no_pci.count} assets)`,
+                        data: [
+                            data.no_pci.distribution.excellent,
+                            data.no_pci.distribution.good,
+                            data.no_pci.distribution.fair,
+                            data.no_pci.distribution.poor
+                        ],
+                        backgroundColor: '#64748b',
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.dataset.label || '';
+                                    const value = context.parsed.y;
+                                    const dataset = context.dataset.label.includes('PCI') ? data.pci : data.no_pci;
+                                    const counts = ['excellent_count', 'good_count', 'fair_count', 'poor_count'];
+                                    const count = dataset.distribution[counts[context.dataIndex]];
+                                    return `${label}: ${value}% (${count} assets)`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error loading PCI chart:', error);
+        }
+    }
+
+    // Cargar gráfico Drift
+    async function loadDriftChart() {
+        try {
+            const response = await fetch('/compliance/api/dashboard/audit-baseline-drift/');
+            const result = await response.json();
+            const data = result.data;
+
+            const ctx = document.getElementById('driftChart');
+            
+            if (driftChart) {
+                driftChart.destroy();
+            }
+
+            const colors = data.map(d => d.drift < 0 ? '#ef4444' : '#10b981');
+
+            driftChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.hostname),
+                    datasets: [{
+                        label: 'Drift (%)',
+                        data: data.map(d => d.drift),
+                        backgroundColor: colors,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const item = data[context.dataIndex];
+                                    return [
+                                        `Drift: ${item.drift.toFixed(2)}%`,
+                                        `Baseline: ${item.baseline}%`,
+                                        `Actual: ${item.current}%`,
+                                        `Capa: ${item.layer}`
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error loading drift chart:', error);
+        }
+    }
+
+    // Cargar tabla de exclusiones
+    async function loadExclusionsTable(page) {
+        try {
+            const response = await fetch(`/compliance/api/dashboard/audit-exclusions-list/?page=${page}&per_page=25`);
+            const result = await response.json();
+            const data = result.data;
+            const pagination = result.pagination;
+
+            currentExclusionsPage = page;
+
+            if (data.length === 0) {
+                document.getElementById('exclusionsTable').innerHTML = `
+                    <div class="empty-state">
+                        <i class="bi bi-check-circle" style="font-size: 3rem; color: #10b981;"></i>
+                        <p>No hay exclusiones por asset registradas</p>
+                    </div>
+                `;
+                document.getElementById('exclusionsPagination').innerHTML = '';
+                return;
+            }
+
+            let html = `
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Asset</th>
+                                <th>Política</th>
+                                <th>Título</th>
+                                <th>Capa</th>
+                                <th>Razón</th>
+                                <th style="text-align: center;">Archivo</th>
+                                <th style="text-align: center;">Creado</th>
+                                <th>Creado Por</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            data.forEach(exclusion => {
+                html += `
+                    <tr>
+                        <td>
+                            <a href="/compliance/assets/${exclusion.id}/" class="link-btn">
+                                ${exclusion.asset}
+                            </a>
+                        </td>
+                        <td style="font-family: monospace; font-weight: 600;">
+                            ${exclusion.policy_section} ${exclusion.policy_recommendation}
+                        </td>
+                        <td>${exclusion.policy_title}</td>
+                        <td>${exclusion.layer}</td>
+                        <td>${exclusion.reason}</td>
+                        <td style="text-align: center;">
+                            ${exclusion.has_file ? '<span class="badge badge-success">Sí</span>' : '<span class="badge badge-warning">No</span>'}
+                        </td>
+                        <td style="text-align: center;">${exclusion.created_at}</td>
+                        <td>${exclusion.created_by}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            document.getElementById('exclusionsTable').innerHTML = html;
+
+            // Paginación
+            let paginationHtml = `
+                <button onclick="loadExclusionsTable(${page - 1})" ${!pagination.has_previous ? 'disabled' : ''}>
+                    <i class="bi bi-chevron-left"></i> Anterior
+                </button>
+                <span>Página ${pagination.current_page} de ${pagination.total_pages} (${pagination.total_items} total)</span>
+                <button onclick="loadExclusionsTable(${page + 1})" ${!pagination.has_next ? 'disabled' : ''}>
+                    Siguiente <i class="bi bi-chevron-right"></i>
+                </button>
+            `;
+
+            document.getElementById('exclusionsPagination').innerHTML = paginationHtml;
+        } catch (error) {
+            console.error('Error loading exclusions table:', error);
+            document.getElementById('exclusionsTable').innerHTML = `
+                <div class="empty-state">
+                    <i class="bi bi-exclamation-circle" style="font-size: 3rem;"></i>
+                    <p>Error al cargar datos</p>
+                </div>
+            `;
+        }
+    }
+
+    // Cargar tabla de failed sin justificación
+    async function loadFailedTable() {
+        try {
+            const response = await fetch('/compliance/api/dashboard/audit-failed-without-justification/');
+            const result = await response.json();
+            const data = result.data;
+
+            if (data.length === 0) {
+                document.getElementById('failedTable').innerHTML = `
+                    <div class="empty-state">
+                        <i class="bi bi-check-circle" style="font-size: 3rem; color: #10b981;"></i>
+                        <p>¡Excelente! Todas las políticas failed tienen justificación documentada</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `
+                <div class="alert-box alert-warning">
+                    <strong><i class="bi bi-exclamation-triangle"></i> Atención:</strong>
+                    Se encontraron ${data.length} políticas failed sin justificación en assets hardenizados. 
+                    Estas políticas requieren exclusión formal con documentación de respaldo.
+                </div>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Asset</th>
+                                <th>Capa</th>
+                                <th>Política</th>
+                                <th>Título</th>
+                                <th>Ambiente</th>
+                                <th style="text-align: center;">PCI</th>
+                                <th style="text-align: center;">Compliance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            data.forEach(item => {
+                html += `
+                    <tr>
+                        <td>
+                            <a href="/compliance/assets/${item.asset_id}/" class="link-btn">
+                                ${item.asset}
+                            </a>
+                        </td>
+                        <td>${item.layer}</td>
+                        <td>
+                            ${item.policy_recommendation}
+                        </td>
+                        <td>${item.policy_title}</td>
+                        <td>${item.environment}</td>
+                        <td style="text-align: center;">
+                            ${item.pci ? '<span class="badge badge-pci">PCI</span>' : '-'}
+                        </td>
+                        <td style="text-align: center;">
+                            <span class="badge badge-success">${item.compliance}%</span>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            document.getElementById('failedTable').innerHTML = html;
+        } catch (error) {
+            console.error('Error loading failed table:', error);
+            document.getElementById('failedTable').innerHTML = `
+                <div class="empty-state">
+                    <i class="bi bi-exclamation-circle" style="font-size: 3rem;"></i>
+                    <p>Error al cargar datos</p>
+                </div>
+            `;
+        }
+    }
+
+    // Cargar tabla de cambios manuales
+    async function loadBaselineChangesTable() {
+        try {
+            const response = await fetch('/compliance/api/dashboard/audit-manual-baseline-changes/');
+            const result = await response.json();
+            const data = result.data;
+
+            if (data.length === 0) {
+                document.getElementById('baselineChangesTable').innerHTML = `
+                    <div class="empty-state">
+                        <i class="bi bi-info-circle" style="font-size: 3rem;"></i>
+                        <p>No hay cambios manuales en líneas base en los últimos 90 días</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Asset</th>
+                                <th>Capa</th>
+                                <th style="text-align: center;">Valor Anterior</th>
+                                <th style="text-align: center;">Valor Nuevo</th>
+                                <th style="text-align: center;">Cambio</th>
+                                <th style="text-align: center;">Fecha</th>
+                                <th>Modificado Por</th>
+                                <th>Notas</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            data.forEach(change => {
+                const diff = change.new_value - (change.previous_value || 0);
+                const diffClass = diff >= 0 ? 'trend-up' : 'trend-down';
+                const diffIcon = diff >= 0 ? '↗' : '↘';
+
+                html += `
+                    <tr>
+                        <td>
+                            <a href="/compliance/assets/${change.asset_id}/" class="link-btn">
+                                ${change.asset}
+                            </a>
+                        </td>
+                        <td>${change.layer}</td>
+                        <td style="text-align: center;">
+                            ${change.previous_value ? change.previous_value + '%' : '-'}
+                        </td>
+                        <td style="text-align: center;">
+                            <strong>${change.new_value}%</strong>
+                        </td>
+                        <td style="text-align: center;">
+                            ${change.previous_value ? 
+                                `<span style="color: ${diff >= 0 ? '#10b981' : '#ef4444'}; font-weight: bold;">
+                                    ${diffIcon} ${Math.abs(diff).toFixed(2)}%
+                                </span>` : '-'}
+                        </td>
+                        <td style="text-align: center;">${change.set_at}</td>
+                        <td>${change.set_by}</td>
+                        <td style="max-width: 300px;">${change.notes}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            document.getElementById('baselineChangesTable').innerHTML = html;
+        } catch (error) {
+            console.error('Error loading baseline changes table:', error);
+            document.getElementById('baselineChangesTable').innerHTML = `
+                <div class="empty-state">
+                    <i class="bi bi-exclamation-circle" style="font-size: 3rem;"></i>
+                    <p>Error al cargar datos</p>
+                </div>
+            `;
+        }
+    }
+
+    // Exportar exclusiones a Excel
+    function exportExclusions() {
+        const btn = event.target.closest('button');
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Generando...';
+        btn.disabled = true;
+
+        window.location.href = '/compliance/dashboard/audit/export-exclusions/';
+
+        setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+        }, 2000);
+    }
+</script>
+{% endblock %}

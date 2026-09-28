@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Ver Justificación - Compliance CIS{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .view-container {
+        max-width: 900px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+    
+    .header-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    
+    .content-card {
+        background: white;
+        border-radius: 10px;
+        padding: 2rem;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        margin-bottom: 2rem;
+    }
+    
+    .info-row {
+        display: grid;
+        grid-template-columns: 200px 1fr;
+        gap: 1rem;
+        padding: 1rem 0;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .info-row:last-child {
+        border-bottom: none;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: #6b7280;
+    }
+    
+    .info-value {
+        color: #1f2937;
+    }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    
+    .status-active {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    
+    .status-inactive {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+    
+    .justification-text {
+        background: #f9fafb;
+        padding: 1.5rem;
+        border-radius: 8px;
+        border-left: 4px solid #667eea;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+    
+    .file-attachment {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        background: #f0fdf4;
+        border: 1px solid #86efac;
+        border-radius: 8px;
+    }
+    
+    .file-attachment i {
+        font-size: 2rem;
+        margin-right: 1rem;
+        color: #16a34a;
+    }
+    
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        font-size: 1rem;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-block;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s;
+        margin-right: 0.5rem;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    
+    .btn-warning {
+        background: #f59e0b;
+        color: white;
+    }
+    
+    .btn-secondary {
+        background: #e5e7eb;
+        color: #374151;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="view-container">
+    <!-- Header -->
+    <div class="header-card">
+        <h1 style="font-size: 1.75rem; margin-bottom: 1rem;">
+            <i class="bi bi-eye"></i> Ver Justificación
+        </h1>
+        <div style="opacity: 0.9;">
+            <p style="margin: 0.5rem 0;"><strong>Asset:</strong> {{ asset.hostname }} ({{ asset.ip_address }})</p>
+            <p style="margin: 0.5rem 0;"><strong>Capa:</strong> {{ layer.get_layer_type_display }}</p>
+            <p style="margin: 0.5rem 0;"><strong>Política:</strong> {{ policy.section }} {{ policy.recommendation }}</p>
+            <p style="margin: 0.5rem 0;"><strong>Título:</strong> {{ policy.title }}</p>
+        </div>
+    </div>
+    
+    <!-- Information -->
+    <div class="content-card">
+        <h3 style="margin-bottom: 1.5rem; color: #1f2937;">
+            <i class="bi bi-info-circle"></i> Información de la Justificación
+        </h3>
+        
+        <div class="info-row">
+            <div class="info-label">Estado:</div>
+            <div class="info-value">
+                {% if exclusion.is_active %}
+                    <span class="status-badge status-active">
+                        <i class="bi bi-check-circle"></i> Activa
+                    </span>
+                {% else %}
+                    <span class="status-badge status-inactive">
+                        <i class="bi bi-x-circle"></i> Inactiva
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="info-row">
+            <div class="info-label">Creada por:</div>
+            <div class="info-value">{{ exclusion.created_by }}</div>
+        </div>
+        
+        <div class="info-row">
+            <div class="info-label">Fecha de creación:</div>
+            <div class="info-value">{{ exclusion.created_at|date:"d/m/Y H:i" }}</div>
+        </div>
+    </div>
+    
+    <!-- Justification Text -->
+    <div class="content-card">
+        <h3 style="margin-bottom: 1rem; color: #1f2937;">
+            <i class="bi bi-file-text"></i> Justificación
+        </h3>
+        <div class="justification-text">{{ exclusion.reason }}</div>
+    </div>
+    
+    <!-- File Attachment -->
+    {% if exclusion.justification_file %}
+    <div class="content-card">
+        <h3 style="margin-bottom: 1rem; color: #1f2937;">
+            <i class="bi bi-paperclip"></i> Archivo Adjunto
+        </h3>
+        <div class="file-attachment">
+            <i class="bi bi-file-earmark-check"></i>
+            <div style="flex: 1;">
+                <div style="font-weight: 600; color: #374151; margin-bottom: 0.25rem;">
+                    {{ exclusion.justification_file.name|slice:"-50:" }}
+                </div>
+                <a href="{{ exclusion.justification_file.url }}" target="_blank" 
+                   style="color: #667eea; text-decoration: none; font-size: 0.9rem;">
+                    <i class="bi bi-download"></i> Descargar archivo
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Actions -->
+    <div style="text-align: center; margin-top: 2rem;">
+        <a href="{% url 'asset_detail' asset.id %}" class="btn btn-primary">
+            <i class="bi bi-arrow-left"></i> Volver al Asset
+        </a>
+        <a href="{% url 'policy_justification_edit' exclusion.id %}" class="btn btn-warning">
+            <i class="bi bi-pencil"></i> Editar
+        </a>
+        <a href="{% url 'policy_justification_delete' exclusion.id %}" class="btn btn-secondary">
+            <i class="bi bi-trash"></i> Eliminar
+        </a>
+    </div>
+</div>
+{% endblock %}

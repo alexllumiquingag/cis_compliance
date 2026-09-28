@@ -1,0 +1,253 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Importación Bulk - Compliance CIS{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .upload-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+    
+    .info-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    
+    .info-card h2 {
+        font-size: 1.8rem;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+    
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+    
+    .feature-item {
+        background: rgba(255,255,255,0.1);
+        padding: 1rem;
+        border-radius: 8px;
+        text-align: center;
+    }
+    
+    .feature-item i {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .form-card {
+        background: white;
+        border-radius: 10px;
+        padding: 2rem;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #374151;
+    }
+    
+    .form-control, .form-select {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        font-size: 1rem;
+        transition: border-color 0.2s;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .help-text {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-top: 0.25rem;
+    }
+    
+    .alert {
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .alert-info {
+        background: #dbeafe;
+        border: 1px solid #3b82f6;
+        color: #1e40af;
+    }
+    
+    .alert-secondary {
+        background: #f3f4f6;
+        border: 1px solid #d1d5db;
+        color: #374151;
+    }
+    
+    .spinner {
+        display: inline-block;
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Mensajes del Sistema -->
+{% include 'partials/_messages.html' %}
+
+<!-- Main Content -->
+<div class="upload-container">
+    <!-- Header Card -->
+    <div class="info-card">
+        <div class="text-center">
+            <h2>Importación Bulk de Escaneos Nessus</h2>
+            <p style="opacity: 0.9;">Procesa múltiples hosts desde un solo archivo CSV</p>
+        </div>
+    </div>
+    
+    <!-- Form Card -->
+    <div class="form-card">
+        <h4 style="margin-bottom: 1.5rem; font-size: 1.25rem; font-weight: 600;">
+            <i class="bi bi-file-earmark-spreadsheet text-blue-600"></i>
+            Subir CSV de Nessus
+        </h4>
+        
+        <form method="post" enctype="multipart/form-data" id="uploadForm">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label class="form-label" for="id_benchmark">
+                    Benchmark *
+                </label>
+                {{ form.benchmark }}
+                <div class="help-text">Benchmark CIS que se aplicará a todos los hosts del CSV</div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="id_layer_type">
+                    Tipo de Capa *
+                </label>
+                {{ form.layer_type }}
+                <div class="help-text">Tipo de capa que se evaluará (OS, Web, DB)</div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="id_scan_date">
+                    Fecha del Escaneo *
+                </label>
+                {{ form.scan_date }}
+                <div class="help-text">Fecha en que se realizó el escaneo</div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="id_csv_file">
+                    Archivo CSV de Nessus *
+                </label>
+                {{ form.csv_file }}
+                <div class="help-text">CSV con resultados de múltiples servidores (Max: 100MB)</div>
+            </div>
+            
+            <div class="alert alert-info">
+                <strong><i class="bi bi-info-circle"></i> Importante:</strong><br>
+                • Columnas requeridas: Plugin ID, Risk, Description, Plugin Output<br>
+                • Solo se procesarán hosts que existan como Assets ACTIVOS<br>
+                • Se mostrará un reporte detallado de hosts procesados y omitidos<br>
+                • Los checks informativos (Risk=None) serán filtrados automáticamente
+            </div>
+            <div style="text-align: center; margin-top: 3rem;">
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    <i class="bi bi-upload"></i> Procesar CSV Bulk
+                </button>
+                <a href="{% url 'compliance_dashboard' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Help Section -->
+    <div style="text-align: center; margin-top: 2rem; color: #6b7280;">
+        <p>
+            <i class="bi bi-question-circle"></i>
+            ¿Necesitas ayuda? 
+            <a href="/admin/compliance/asset/" style="color: #3b82f6;">Ver Assets Activos</a> |
+            <a href="/admin/compliance/benchmark/" style="color: #3b82f6;">Ver Benchmarks</a>
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Validación en cliente
+    document.getElementById('uploadForm').addEventListener('submit', function(e) {
+        const fileInput = document.querySelector('input[type="file"]');
+        const file = fileInput.files[0];
+        
+        if (file) {
+            // Validar tamaño (max 100MB)
+            if (file.size > 100 * 1024 * 1024) {
+                e.preventDefault();
+                alert('El archivo es muy grande. Tamaño máximo: 100MB');
+                return false;
+            }
+            
+            // Validar extensión
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                e.preventDefault();
+                alert('Solo se permiten archivos CSV');
+                return false;
+            }
+            
+            // Mostrar indicador de carga
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner"></span> Procesando...';
+        }
+    });
+    
+    // Estilizar los campos del form de Django
+    document.addEventListener('DOMContentLoaded', function() {
+        // Agregar clases a los campos generados por Django
+        const selects = document.querySelectorAll('select');
+        selects.forEach(select => {
+            select.className = 'form-select';
+        });
+        
+        const inputs = document.querySelectorAll('input[type="date"], input[type="file"]');
+        inputs.forEach(input => {
+            if (input.type !== 'file') {
+                input.className = 'form-control';
+            }
+        });
+    });
+</script>
+{% endblock %}

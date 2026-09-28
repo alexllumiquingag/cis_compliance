@@ -1,0 +1,368 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Gestión de Assets - Compliance CIS{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .filter-badge {
+        background: #3b82f6;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        margin-right: 0.5rem;
+    }
+    
+    .changed-up { 
+        color: #10b981; 
+        font-weight: bold;
+        animation: pulse 2s infinite;
+    }
+    
+    .changed-down { 
+        color: #ef4444; 
+        font-weight: bold;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    
+    <!-- Header con Estadísticas -->
+    <div class="mb-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-bold text-gray-900">Gestión de Assets</h2>
+            <div class="flex gap-2">
+                <button onclick="exportToExcel()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 hover:shadow-lg transition flex items-center">
+                    <i class="bi bi-file-earmark-excel mr-2"></i>
+                    Exportar a Excel
+                </button>
+                <a href="{% url 'asset_create' %}" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition">
+                    <i class="bi bi-plus-circle"></i> Nuevo Asset
+                </a>
+            </div>
+        </div>
+        
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+            <div class="bg-white rounded-lg shadow p-4">
+                <div class="text-3xl font-bold text-blue-600">{{ stats.total_assets }}</div>
+                <div class="text-sm text-gray-600">Total Assets</div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4">
+                <div class="text-3xl font-bold text-green-600">{{ stats.active_assets }}</div>
+                <div class="text-sm text-gray-600">Activos</div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4">
+                <div class="text-3xl font-bold text-gray-600">{{ stats.inactive_assets }}</div>
+                <div class="text-sm text-gray-600">Inactivos</div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4">
+                <div class="text-3xl font-bold text-purple-600">{{ stats.pci_assets }}</div>
+                <div class="text-sm text-gray-600">Estándar PCI</div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4">
+                <div class="text-3xl font-bold text-orange-600">{{ stats.changed_compliance }}</div>
+                <div class="text-sm text-gray-600">Con Cambios</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <form method="get" id="filterForm">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <i class="bi bi-funnel"></i> Filtros
+                </h3>
+                <button type="button" id="toggleFilters" class="text-blue-600 hover:text-blue-800 text-sm">
+                    <i class="bi bi-chevron-down"></i> Mostrar/Ocultar
+                </button>
+            </div>
+            
+            <div id="filtersContent">
+                <!-- Fila 1: Búsqueda y Estado -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            <i class="bi bi-search"></i> Buscar
+                        </label>
+                        <input type="text" name="search" value="{{ filters.search }}" 
+                               placeholder="Hostname o IP..." 
+                               class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                        <select name="status" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <option value="">Todos</option>
+                            <option value="ACTIVE" {% if filters.status == 'ACTIVE' %}selected{% endif %}>Activos</option>
+                            <option value="INACTIVE" {% if filters.status == 'INACTIVE' %}selected{% endif %}>Inactivos</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Capa</label>
+                        <select name="layer_type" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <option value="">Todas</option>
+                            {% for code, name in filter_options.layer_types %}
+                                <option value="{{ code }}" {% if filters.layer_type == code %}selected{% endif %}>{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Fila 2: Clasificación -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Ambiente</label>
+                        <select name="environment" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <option value="">Todos</option>
+                            {% for code, name in filter_options.environments %}
+                                <option value="{{ code }}" {% if filters.environment == code %}selected{% endif %}>{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Administrador</label>
+                        <select name="administrator" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <option value="">Todos</option>
+                            {% for code, name in filter_options.administrators %}
+                                <option value="{{ code }}" {% if filters.administrator == code %}selected{% endif %}>{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Responsable</label>
+                        <select name="responsible" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <option value="">Todos</option>
+                            {% for code, name in filter_options.responsibles %}
+                                <option value="{{ code }}" {% if filters.responsible == code %}selected{% endif %}>{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Estándar PCI</label>
+                        <select name="pci_standard" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <option value="">Todos</option>
+                            <option value="true" {% if filters.pci_standard == 'true' %}selected{% endif %}>Sí</option>
+                            <option value="false" {% if filters.pci_standard == 'false' %}selected{% endif %}>No</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Botones de Acción -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <label class="flex items-center">
+                            <input type="checkbox" name="show_only_changed" {% if filters.show_only_changed %}checked{% endif %}
+                                   class="mr-2 rounded">
+                            <span class="text-sm font-medium text-gray-700">
+                                <i class="bi bi-arrow-repeat text-orange-600"></i> Solo con cambios en compliance
+                            </span>
+                        </label>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                            <i class="bi bi-funnel-fill"></i> Aplicar Filtros
+                        </button>
+                        <a href="{% url 'assets_list' %}" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400">
+                            <i class="bi bi-x-circle"></i> Limpiar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Filtros Activos -->
+    {% if filters.search or filters.environment or filters.administrator %}
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <span class="text-sm font-medium text-gray-700 mr-2">Filtros activos:</span>
+                {% if filters.search %}<span class="filter-badge">Búsqueda: {{ filters.search }}</span>{% endif %}
+                {% if filters.environment %}<span class="filter-badge">Ambiente</span>{% endif %}
+                {% if filters.administrator %}<span class="filter-badge">Administrador</span>{% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Tabla de Assets -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Hostname / IP</th>
+                        <th>Clasificación</th>
+                        <th>Capas</th>
+                        <th class="text-center">Compliance</th>
+                        <th class="text-center">Último Escaneo</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for asset_data in page_obj %}
+                    <tr>
+                        <td>
+                            <div class="flex items-center">
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900">
+                                        <a href="{% url 'asset_detail' asset_data.asset.id %}" class="text-blue-600 hover:text-blue-800">
+                                            {{ asset_data.asset.hostname }}
+                                        </a>
+                                    </div>
+                                    <div class="text-sm text-gray-500">{{ asset_data.asset.ip_address }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        
+                        <td>
+                            <div class="text-sm">
+                                {% if asset_data.asset.pci_standard %}
+                                    <span class="badge badge-pci">PCI</span>
+                                {% endif %}
+                                {% if asset_data.asset.environment %}
+                                    <span class="badge badge-info">
+                                        {{ asset_data.asset.get_environment_display }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        
+                        <td>
+                            <div class="flex flex-wrap gap-1">
+                                {% for layer_data in asset_data.layers_data %}
+                                    <span class="layer-badge layer-{{ layer_data.layer.layer_type|lower }}">
+                                        {{ layer_data.layer.get_layer_type_display }}
+                                    </span>
+                                {% endfor %}
+                            </div>
+                        </td>
+                        
+                        <td class="text-center">
+                            {% for layer_data in asset_data.layers_data %}
+                                {% if layer_data.latest_scan %}
+                                    {% with compliance=layer_data.latest_scan.compliance_percentage %}
+                                        <div class="mb-1">
+                                            {% if compliance >= 90 %}
+                                                <span class="compliance-badge compliance-high">{{ compliance }}%</span>
+                                            {% elif compliance >= 70 %}
+                                                <span class="compliance-badge compliance-medium">{{ compliance }}%</span>
+                                            {% else %}
+                                                <span class="compliance-badge compliance-low">{{ compliance }}%</span>
+                                            {% endif %}
+                                            
+                                            {% if layer_data.compliance_change %}
+                                                {% if layer_data.compliance_change > 0 %}
+                                                    <span class="changed-up ml-2">
+                                                        <i class="bi bi-arrow-up"></i> +{{ layer_data.compliance_change|floatformat:2 }}%
+                                                    </span>
+                                                {% elif layer_data.compliance_change < 0 %}
+                                                    <span class="changed-down ml-2">
+                                                        <i class="bi bi-arrow-down"></i> {{ layer_data.compliance_change|floatformat:2 }}%
+                                                    </span>
+                                                {% endif %}
+                                            {% endif %}
+                                        </div>
+                                    {% endwith %}
+                                {% else %}
+                                    <span class="text-gray-400 text-sm">Sin escaneo</span>
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        
+                        <td class="text-center text-sm text-gray-500">
+                            {% for layer_data in asset_data.layers_data %}
+                                {% if layer_data.latest_scan %}
+                                    <div>{{ layer_data.latest_scan.scan_date }}</div>
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        
+                        <td class="text-center text-sm font-medium">
+                            <a href="{% url 'asset_detail' asset_data.asset.id %}" class="text-blue-600 hover:text-blue-900 mr-3">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="{% url 'asset_edit' asset_data.asset.id %}" class="text-indigo-600 hover:text-indigo-900 mr-3">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% if asset_data.asset.status == 'ACTIVE' %}
+                                <a href="{% url 'asset_delete' asset_data.asset.id %}" class="text-red-600 hover:text-red-900">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                            No se encontraron assets con los filtros aplicados
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Paginación -->
+        {% include 'partials/_pagination.html' %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Toggle de filtros
+    document.getElementById('toggleFilters').addEventListener('click', function() {
+        const content = document.getElementById('filtersContent');
+        content.style.display = content.style.display === 'none' ? 'block' : 'none';
+    });
+    
+    // Función de exportación a Excel
+    function exportToExcel() {
+        const form = document.getElementById('filterForm');
+        const formData = new FormData(form);
+        const params = new URLSearchParams();
+        
+        for (const [key, value] of formData.entries()) {
+            if (value) {
+                params.append(key, value);
+            }
+        }
+        
+        const showChangedCheckbox = document.querySelector('input[name="show_only_changed"]');
+        if (showChangedCheckbox && showChangedCheckbox.checked) {
+            params.append('show_only_changed', 'on');
+        }
+        
+        const exportUrl = '{% url "export_assets_xlsx" %}' + '?' + params.toString();
+        
+        const btn = event.target.closest('button');
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-hourglass-split mr-2"></i> Generando...';
+        btn.disabled = true;
+        
+        window.location.href = exportUrl;
+        
+        setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+        }, 2000);
+    }
+</script>
+{% endblock %}

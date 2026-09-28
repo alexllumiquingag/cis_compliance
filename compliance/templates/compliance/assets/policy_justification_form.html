@@ -1,0 +1,306 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ action|title }} Justificación - Compliance CIS{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .form-container {
+        max-width: 900px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+    
+    .policy-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    
+    .form-card {
+        background: white;
+        border-radius: 10px;
+        padding: 2rem;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #374151;
+    }
+    
+    .form-input, .form-textarea {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.2s;
+    }
+    
+    .form-input:focus, .form-textarea:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .form-textarea {
+        resize: vertical;
+        min-height: 150px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    }
+    
+    .file-upload-area {
+        border: 2px dashed #d1d5db;
+        border-radius: 8px;
+        padding: 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .file-upload-area:hover {
+        border-color: #667eea;
+        background: #f9fafb;
+    }
+    
+    .file-upload-area.dragover {
+        border-color: #667eea;
+        background: #ede9fe;
+    }
+    
+    .current-file {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem;
+        background: #f0fdf4;
+        border: 1px solid #86efac;
+        border-radius: 6px;
+        margin-bottom: 1rem;
+    }
+    
+    .current-file i {
+        font-size: 1.5rem;
+        margin-right: 0.75rem;
+        color: #16a34a;
+    }
+    
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        font-size: 1rem;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-block;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-secondary {
+        background: #e5e7eb;
+        color: #374151;
+    }
+    
+    .btn-secondary:hover {
+        background: #d1d5db;
+    }
+    
+    .info-box {
+        background: #dbeafe;
+        border-left: 4px solid #3b82f6;
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+    }
+    
+    .char-counter {
+        text-align: right;
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-top: 0.25rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <!-- Policy Information -->
+    <div class="policy-header">
+        <h1 style="font-size: 1.75rem; margin-bottom: 1rem;">
+            <i class="bi bi-file-text"></i> 
+            {% if action == 'create' %}Crear{% else %}Editar{% endif %} Justificación
+        </h1>
+        <div style="opacity: 0.9;">
+            <p style="margin: 0.5rem 0;"><strong>Asset:</strong> {{ asset.hostname }} ({{ asset.ip_address }})</p>
+            <p style="margin: 0.5rem 0;"><strong>Capa:</strong> {{ layer.get_layer_type_display }}</p>
+            <p style="margin: 0.5rem 0;"><strong>Política:</strong> {{ policy.section }} {{ policy.recommendation }}</p>
+            <p style="margin: 0.5rem 0;"><strong>Título:</strong> {{ policy.title }}</p>
+        </div>
+    </div>
+    
+    <div class="info-box">
+        <i class="bi bi-info-circle"></i>
+        <strong>Información importante:</strong>
+        <ul style="margin: 0.5rem 0 0 1.5rem; padding: 0;">
+            <li>La justificación se registra como documentación</li>
+            <li>Se mantendrá para escaneos actuales y futuros</li>
+            <li>Puede activar/desactivar o eliminar la justificación</li>
+            <li>Mínimo 50 caracteres en la justificación</li>
+        </ul>
+    </div>
+    
+    <!-- Form -->
+    <div class="form-card">
+        <form method="post" enctype="multipart/form-data" id="justificationForm">
+            {% csrf_token %}
+            
+            <!-- Reason Field -->
+            <div class="form-group">
+                <label class="form-label" for="reason">
+                    <i class="bi bi-pencil-square"></i> Justificación *
+                </label>
+                <textarea 
+                    name="reason" 
+                    id="reason" 
+                    class="form-textarea" 
+                    required
+                    minlength="50"
+                    placeholder="Explique detalladamente por qué esta política no se cumple o no aplica. Incluya controles compensatorios si existen. Mínimo 50 caracteres."
+                >{% if exclusion %}{{ exclusion.reason }}{% endif %}</textarea>
+                <div class="char-counter">
+                    <span id="charCount">0</span> / 50 caracteres (mínimo)
+                </div>
+            </div>
+            
+            <!-- File Upload -->
+            <div class="form-group">
+                <label class="form-label" for="justification_file">
+                    <i class="bi bi-paperclip"></i> Archivo de Evidencia (Opcional)
+                </label>
+                
+                {% if exclusion.justification_file %}
+                <div class="current-file">
+                    <i class="bi bi-file-earmark-check"></i>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; color: #374151;">Archivo actual</div>
+                        <a href="{{ exclusion.justification_file.url }}" target="_blank" style="color: #667eea; text-decoration: none;">
+                            {{ exclusion.justification_file.name|slice:"-50:" }} <i class="bi bi-box-arrow-up-right"></i>
+                        </a>
+                    </div>
+                </div>
+                <p style="margin-bottom: 1rem; color: #6b7280; font-size: 0.875rem;">
+                    Puede subir un nuevo archivo para reemplazar el actual (dejar vacío para mantener el archivo actual).
+                </p>
+                {% endif %}
+                
+                <div class="file-upload-area" id="fileUploadArea">
+                    <input 
+                        type="file" 
+                        name="justification_file" 
+                        id="justification_file" 
+                        style="display: none;"
+                        accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.eml">
+                    <i class="bi bi-cloud-upload" style="font-size: 3rem; color: #d1d5db; display: block; margin-bottom: 0.5rem;"></i>
+                    <p style="margin: 0.5rem 0; font-weight: 600; color: #374151;">
+                        Haga clic aquí o arrastre un archivo
+                    </p>
+                    <p style="margin: 0; font-size: 0.875rem; color: #6b7280;">
+                        PDF, Imágenes (PNG, JPG), Word, Excel, Correo (.eml)
+                    </p>
+                    <p style="margin: 0.5rem 0 0 0; font-size: 0.75rem; color: #9ca3af;">
+                        Tamaño máximo: 10MB
+                    </p>
+                    <div id="fileName" style="margin-top: 1rem; font-weight: 600; color: #667eea;"></div>
+                </div>
+            </div>
+            
+            <!-- Buttons -->
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> Guardar Justificación
+                </button>
+                <a href="{% url 'asset_detail' asset.id %}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Character counter
+    const reasonField = document.getElementById('reason');
+    const charCount = document.getElementById('charCount');
+    
+    function updateCharCount() {
+        const count = reasonField.value.length;
+        charCount.textContent = count;
+        
+        if (count < 50) {
+            charCount.style.color = '#ef4444';
+        } else {
+            charCount.style.color = '#10b981';
+        }
+    }
+    
+    reasonField.addEventListener('input', updateCharCount);
+    updateCharCount(); // Initial count
+    
+    // File upload
+    const fileUploadArea = document.getElementById('fileUploadArea');
+    const fileInput = document.getElementById('justification_file');
+    const fileName = document.getElementById('fileName');
+    
+    fileUploadArea.addEventListener('click', () => fileInput.click());
+    
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            const file = e.target.files[0];
+            fileName.textContent = `✓ ${file.name}`;
+        }
+    });
+    
+    // Drag and drop
+    fileUploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        fileUploadArea.classList.add('dragover');
+    });
+    
+    fileUploadArea.addEventListener('dragleave', () => {
+        fileUploadArea.classList.remove('dragover');
+    });
+    
+    fileUploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        fileUploadArea.classList.remove('dragover');
+        
+        if (e.dataTransfer.files.length > 0) {
+            fileInput.files = e.dataTransfer.files;
+            const file = e.dataTransfer.files[0];
+            fileName.textContent = `✓ ${file.name}`;
+        }
+    });
+</script>
+{% endblock %}

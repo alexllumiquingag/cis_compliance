@@ -1,0 +1,205 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sistema de Compliance CIS{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <!-- Estilos Base -->
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+        }
+        
+        /* Badges Comunes */
+        .badge {
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: inline-block;
+        }
+        
+        .badge-success { background: #d1fae5; color: #065f46; }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
+        .badge-info { background: #dbeafe; color: #1e40af; }
+        .badge-pci { background: #2196F3; color: white; }
+        
+        /* Badges de Compliance */
+        .compliance-badge {
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: inline-block;
+        }
+        
+        .compliance-high { background-color: #d1fae5; color: #065f46; }
+        .compliance-medium { background-color: #fef3c7; color: #92400e; }
+        .compliance-low { background-color: #fee2e2; color: #991b1b; }
+        
+        /* Badges de Capas */
+        .layer-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+        
+        .layer-os { background: #3b82f6; color: white; }
+        .layer-web { background: #10b981; color: white; }
+        .layer-db { background: #f59e0b; color: white; }
+        
+        /* Botones */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-outline-secondary {
+            background: white;
+            color: #6b7280;
+            border: 2px solid #d1d5db;
+        }
+        
+        .btn-outline-secondary:hover {
+            background: #f3f4f6;
+        }
+        
+        /* Loader */
+        .loader {
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Tablas */
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .table thead {
+            background: #f9fafb;
+        }
+        
+        .table th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .table td {
+            padding: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .table tbody tr:hover {
+            background: #f9fafb;
+        }
+        
+        /* Estilos adicionales específicos de página */
+       
+    </style>
+     {% block extra_styles %}{% endblock %}
+    <!-- Scripts adicionales en el head -->
+    {% block extra_head %}{% endblock %}
+    
+</head>
+<body class="bg-gray-50">
+    <!-- Navbar -->
+    {% include 'partials/_navbar.html' %}
+
+    <!-- Mensajes del Sistema -->
+    {% include 'partials/_messages.html' %}
+
+    <!-- Contenido Principal -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    {% include 'partials/_footer.html' %}
+
+    <!-- Scripts Base -->
+    <script>
+        // Funciones globales útiles
+        function showNotification(message, type = 'success') {
+            const container = document.createElement('div');
+            container.className = `alert alert-${type} mb-3`;
+            container.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-4">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            `;
+            document.body.insertBefore(container, document.body.firstChild);
+            
+            setTimeout(() => {
+                container.style.transition = 'opacity 0.5s';
+                container.style.opacity = '0';
+                setTimeout(() => container.remove(), 500);
+            }, 5000);
+        }
+        
+        function confirmDelete(message = '¿Estás seguro de eliminar este elemento?') {
+            return confirm(message);
+        }
+        
+        // Función para copiar texto al portapapeles
+        async function copyToClipboard(text) {
+            try {
+                await navigator.clipboard.writeText(text);
+                showNotification('Copiado al portapapeles', 'success');
+                return true;
+            } catch (err) {
+                console.error('Error al copiar:', err);
+                showNotification('Error al copiar al portapapeles', 'error');
+                return false;
+            }
+        }
+    </script>
+    
+    <!-- Scripts adicionales de página -->
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

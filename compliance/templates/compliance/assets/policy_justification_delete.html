@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Eliminar Justificación - Compliance CIS{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .delete-container {
+        max-width: 600px;
+        margin: 3rem auto;
+        padding: 0 1rem;
+    }
+    
+    .delete-card {
+        background: white;
+        border-radius: 10px;
+        padding: 2rem;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+    
+    .warning-box {
+        background: #fee2e2;
+        border-left: 4px solid #ef4444;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin: 1.5rem 0;
+    }
+    
+    .info-box {
+        background: #f9fafb;
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+    }
+    
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        font-size: 1rem;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-block;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s;
+    }
+    
+    .btn-danger {
+        background: #ef4444;
+        color: white;
+    }
+    
+    .btn-danger:hover {
+        background: #dc2626;
+    }
+    
+    .btn-secondary {
+        background: #e5e7eb;
+        color: #374151;
+    }
+    
+    .btn-secondary:hover {
+        background: #d1d5db;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="delete-container">
+    <div class="delete-card">
+        <h1 style="font-size: 1.75rem; margin-bottom: 1rem; color: #1f2937;">
+            <i class="bi bi-trash"></i> Eliminar Justificación
+        </h1>
+        
+        <div class="info-box">
+            <p style="margin: 0; color: #6b7280;">
+                <strong>Asset:</strong> {{ exclusion.asset.hostname }}<br>
+                <strong>Política:</strong> {{ exclusion.policy.section }} {{ exclusion.policy.recommendation }}<br>
+                <strong>Título:</strong> {{ exclusion.policy.title }}
+            </p>
+        </div>
+        
+        <div class="warning-box">
+            <i class="bi bi-exclamation-triangle" style="font-size: 1.5rem; color: #ef4444;"></i>
+            <h3 style="margin: 0.5rem 0; color: #991b1b;">¿Está seguro?</h3>
+            <p style="margin: 0.5rem 0 0 0; color: #991b1b;">
+                Esta acción eliminará permanentemente la justificación. 
+                <strong>No se puede deshacer.</strong>
+            </p>
+        </div>
+        
+        <div style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 1rem; border-radius: 6px; margin: 1.5rem 0;">
+            <p style="margin: 0; color: #1e40af; font-size: 0.9rem;">
+                <i class="bi bi-info-circle"></i>
+                <strong>Nota:</strong> Si solo desea desactivar temporalmente la justificación, 
+                use el botón de activar/desactivar en lugar de eliminarla.
+            </p>
+        </div>
+        
+        <form method="post">
+            {% csrf_token %}
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button type="submit" class="btn btn-danger">
+                    <i class="bi bi-trash"></i> Sí, Eliminar Justificación
+                </button>
+                <a href="{% url 'asset_detail' exclusion.asset.id %}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

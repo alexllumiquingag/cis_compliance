@@ -1,0 +1,1198 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Gestión de Assets - Compliance CIS{% endblock %}
+
+{% block extra_styles %}
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+        }
+        
+        .detail-container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        
+        .header-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .content-card {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .table thead {
+            background: #f9fafb;
+        }
+        
+        .table th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .table td {
+            padding: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .table tbody tr:hover {
+            background: #f9fafb;
+        }
+        
+        .badge {
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: inline-block;
+        }
+        
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .badge-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .badge-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .badge-pci {
+            background: #2196F3;
+            color: white;
+        }
+        
+        .badge-justified {
+            background: #c7d2fe;
+            color: #4338ca;
+            font-size: 0.8rem;
+        }
+        
+        .layer-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+        
+        .layer-os { background: #3b82f6; color: white; }
+        .layer-web { background: #10b981; color: white; }
+        .layer-db { background: #f59e0b; color: white; }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        
+        .btn-sm {
+            padding: 0.35rem 0.75rem;
+            font-size: 0.8rem;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: #d97706;
+        }
+        
+        .btn-outline {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+        
+        .btn-outline:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+            color: #d1d5db;
+        }
+        
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+        
+        .section-header h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin: 0;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .info-item {
+            display: flex;
+            align-items: start;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        
+        .info-item i {
+            font-size: 1.5rem;
+            margin-right: 0.75rem;
+            color: #667eea;
+        }
+        
+        .info-item-content {
+            flex: 1;
+        }
+        
+        .info-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+            font-weight: 500;
+        }
+        
+        .info-value {
+            font-size: 1rem;
+            color: #1f2937;
+            font-weight: 600;
+            margin-top: 0.25rem;
+        }
+        
+        .policy-row {
+            position: relative;
+        }
+        
+        .policy-row.justified {
+            background: #fef3f2 !important;
+            border-left: 4px solid #f59e0b;
+        }
+        
+        .justified-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            background: #fef3c7;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            color: #92400e;
+            font-weight: 600;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #374151;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.75rem;
+        }
+        
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Estilos para el gráfico de timeline */
+        #timelineChart {
+            width: 100%;
+            height: 400px;
+            margin-top: 1rem;
+        }
+        
+        .chart-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 400px;
+            color: #6b7280;
+            font-size: 1.2rem;
+        }
+        
+        .chart-error {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 400px;
+            color: #ef4444;
+            font-size: 1rem;
+        }
+        
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            margin-right: 1.5rem;
+            font-size: 0.875rem;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 3px;
+            margin-right: 0.5rem;
+            border-radius: 2px;
+        }
+
+
+    </style>
+{% endblock %}
+
+
+{% block content %}
+
+    <!-- Main Content -->
+    <div class="detail-container">
+        <!-- Header Card -->
+        <div class="header-card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">
+                        <i class="bi bi-server"></i> {{ asset.hostname }}
+                    </h1>
+                    <p style="margin: 0; opacity: 0.9; font-size: 1.1rem;">
+                        <i class="bi bi-hdd-network"></i> {{ asset.ip_address }}
+                    </p>
+                </div>
+                <div style="text-align: right;">
+                    {% if asset.pci_standard %}
+                        <span class="badge badge-pci" style="font-size: 1rem; padding: 0.5rem 1rem;">
+                            <i class="bi bi-shield-check"></i> PCI DSS
+                        </span>
+                    {% endif %}
+                    <div style="margin-top: 0.5rem;">
+                        <span class="badge badge-info" style="font-size: 0.9rem;">
+                            {{ asset.get_environment_display }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" style="color: #3b82f6;">{{ stats.total_layers }}</div>
+                <div class="stat-label">
+                    <i class="bi bi-layers"></i> Capas Configuradas
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-value" style="color: #10b981;">{{ stats.total_scans }}</div>
+                <div class="stat-label">
+                    <i class="bi bi-clipboard-check"></i> Escaneos Realizados
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-value" style="color: #ef4444;">{{ stats.failed_policies_count }}</div>
+                <div class="stat-label">
+                    <i class="bi bi-x-circle"></i> Políticas Fallidas
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-value">
+                    {{ stats.avg_compliance|floatformat:1 }}%
+                </div>
+                <div class="stat-label">
+                    <i class="bi bi-percent"></i> Compliance Promedio
+                </div>
+            </div>
+        </div>
+        
+        <!-- Asset Information -->
+        <div class="content-card">
+            <div class="section-header">
+                <h3><i class="bi bi-info-circle text-blue-600"></i> Información del Asset</h3>
+            </div>
+            
+            <div class="info-grid">
+                <div class="info-item">
+                    <i class="bi bi-building"></i>
+                    <div class="info-item-content">
+                        <div class="info-label">Administrador</div>
+                        <div class="info-value">{{ asset.get_administrator_display|default:"-" }}</div>
+                    </div>
+                </div>
+                
+                <div class="info-item">
+                    <i class="bi bi-person-badge"></i>
+                    <div class="info-item-content">
+                        <div class="info-label">Responsable</div>
+                        <div class="info-value">{{ asset.get_responsible_display|default:"-" }}</div>
+                    </div>
+                </div>
+                
+                <div class="info-item">
+                    <i class="bi bi-globe"></i>
+                    <div class="info-item-content">
+                        <div class="info-label">Ambiente</div>
+                        <div class="info-value">{{ asset.get_environment_display|default:"-" }}</div>
+                    </div>
+                </div>
+                
+                <div class="info-item">
+                    <i class="bi bi-calendar-event"></i>
+                    <div class="info-item-content">
+                        <div class="info-label">Registrado</div>
+                        <div class="info-value">{{ asset.created_at|date:"d/m/Y" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timeline de Compliance (NUEVO) -->
+        <div class="content-card">
+            <div class="section-header">
+                <h3><i class="bi bi-graph-up text-blue-600"></i> Timeline de Compliance (Últimos 3 Meses)</h3>
+            </div>
+            
+            <div id="timelineChartContainer">
+                <div class="chart-loading">
+                    <i class="bi bi-hourglass-split"></i> &nbsp; Cargando datos...
+                </div>
+                <canvas id="timelineChart"></canvas>
+            </div>
+            
+            <div style="margin-top: 1rem; padding: 0.75rem; background: #f9fafb; border-radius: 6px; font-size: 0.875rem; color: #6b7280;">
+                <i class="bi bi-info-circle"></i>
+                <strong>Nota:</strong> El gráfico muestra la evolución del compliance de cada capa durante los últimos 3 meses.
+                La línea punteada representa la línea base de cada capa.
+            </div>
+        </div>
+
+
+
+
+
+
+        <!-- Baselines -->
+        {% if baselines %}
+        <div class="content-card">
+            <div class="section-header">
+                <h3><i class="bi bi-graph-up text-blue-600"></i> Líneas Base</h3>
+            </div>
+            
+            <div style="overflow-x: auto;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Capa</th>
+                            <th style="text-align: center;">Línea Base</th>
+                            <th style="text-align: center;">Tipo</th>
+                            <th style="text-align: center;">Establecida</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for baseline in baselines %}
+                        <tr>
+                            <td>
+                                <span class="layer-badge layer-{{ baseline.layer.layer_type|lower }}">
+                                    {{ baseline.layer.get_layer_type_display }}
+                                </span>
+                            </td>
+                            <td style="text-align: center;">
+                                <span class="badge badge-info">{{ baseline.compliance_percentage|floatformat:2 }}%</span>
+                            </td>
+                            <td style="text-align: center;">
+                                {% if baseline.is_manual %}
+                                    <span class="badge badge-warning">
+                                        <i class="bi bi-pencil"></i> Manual
+                                    </span>
+                                {% else %}
+                                    <span class="badge badge-success">
+                                        <i class="bi bi-robot"></i> Automática
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: center;">{{ baseline.set_at|date:"d/m/Y" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Layers & Latest Scans -->
+        <div class="content-card">
+            <div class="section-header">
+                <h3><i class="bi bi-layers text-blue-600"></i> Capas y Últimos Escaneos</h3>
+            </div>
+            
+            {% if latest_scans %}
+                <div style="overflow-x: auto;">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Capa</th>
+                                <th>Software</th>
+                                <th>Benchmark</th>
+                                <th style="text-align: center;">Fecha Escaneo</th>
+                                <th style="text-align: center;">Compliance</th>
+                                <th style="text-align: center;">Passed</th>
+                                <th style="text-align: center;">Failed</th>
+                                <th style="text-align: center;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for scan in latest_scans %}
+                            <tr>
+                                <td>
+                                    <span class="layer-badge layer-{{ scan.layer.layer_type|lower }}">
+                                        {{ scan.layer.get_layer_type_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <strong>{{ scan.layer.get_software_type_display|default:"-" }}</strong>
+                                    {% if scan.layer.description %}
+                                        <br><small style="color: #6b7280;">{{ scan.layer.description }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>{{ scan.layer.benchmark.name }}</td>
+                                <td style="text-align: center;">{{ scan.scan_date|date:"d/m/Y" }}</td>
+                                <td style="text-align: center;">
+                                    {% if scan.compliance_percentage >= 90 %}
+                                        <span class="badge badge-success">{{ scan.compliance_percentage|floatformat:2 }}%</span>
+                                    {% elif scan.compliance_percentage >= 70 %}
+                                        <span class="badge badge-warning">{{ scan.compliance_percentage|floatformat:2 }}%</span>
+                                    {% else %}
+                                        <span class="badge badge-danger">{{ scan.compliance_percentage|floatformat:2 }}%</span>
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: center;">
+                                    <span class="badge badge-success">{{ scan.passed_count }}</span>
+                                </td>
+                                <td style="text-align: center;">
+                                    <span class="badge badge-danger">{{ scan.failed_count }}</span>
+                                </td>
+                                <td style="text-align: center;">
+                                    <a href="/admin/compliance/scan/{{ scan.id }}/change/" 
+                                       class="btn btn-outline btn-sm"
+                                       target="_blank">
+                                        <i class="bi bi-eye"></i> Ver Escaneo
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-clipboard-x"></i>
+                    <p>No hay escaneos registrados para este asset</p>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Failed Policies -->
+        <div class="content-card">
+            <div class="section-header">
+                <h3><i class="bi bi-x-circle text-red-600"></i> Políticas Fallidas ({{ failed_policies|length }})</h3>
+                {% if failed_policies %}
+                    <span class="badge badge-danger" style="font-size: 1rem;">
+                        Requiere atención
+                    </span>
+                {% endif %}
+            </div>
+            
+            {% if failed_policies %}
+                <div style="margin-bottom: 1rem; padding: 1rem; background: #fef2f2; border-left: 4px solid #ef4444; border-radius: 6px;">
+                    <p style="margin: 0; color: #991b1b;">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Atención:</strong> Este asset tiene {{ failed_policies|length }} política(s) que no cumplen con los estándares CIS.
+                        Se requiere acción correctiva o justificación.
+                    </p>
+                </div>
+                
+                <!-- Filter and Export Controls -->
+                <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Filtrar por capa:</label>
+                        <select id="layerFilter" style="padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 6px;">
+                            <option value="all">Todas las capas</option>
+                            {% for scan in latest_scans %}
+                                <option value="{{ scan.layer.layer_type }}">{{ scan.layer.get_layer_type_display }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <button onclick="copyTableToClipboard()" class="btn btn-outline btn-sm">
+                            <i class="bi bi-clipboard"></i> Copiar Tabla
+                        </button>
+                        <button onclick="exportToCSV()" class="btn btn-outline btn-sm" style="margin-left: 0.5rem;">
+                            <i class="bi bi-download"></i> Exportar CSV
+                        </button>
+                    </div>
+                </div>
+                
+                <div style="overflow-x: auto;" id="policiesTableContainer">
+                    <table class="table" id="failedPoliciesTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 120px;"># Política</th>
+                                <th>Nombre Política</th>
+                                <th style="text-align: center; width: 120px;">Capa</th>
+                                <th style="text-align: center; width: 120px;">Estado</th>
+                                <th style="text-align: center; width: 150px;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for policy in failed_policies %}
+                            <tr data-layer="{{ policy.layer_type }}" class="policy-row {% if policy.exclusion %}justified{% endif %}">
+                                <td style="font-family: monospace; font-weight: 600; color: #667eea;">
+                                    {{ policy.recommendation }}
+                                </td>
+                                <td>
+                                    <strong>{{ policy.title }}</strong>
+                                    {% if policy.exclusion %}
+                                        <br>
+                                        <span class="justified-indicator">
+                                            <i class="bi bi-shield-check"></i>
+                                            Justificada {% if policy.exclusion.is_active %}(Activa){% else %}(Inactiva){% endif %}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: center;">
+                                    <span class="layer-badge layer-{{ policy.layer_type|lower }}">
+                                        {{ policy.layer }}
+                                    </span>
+                                </td>
+                                <td style="text-align: center;">
+                                    {% if policy.exclusion and policy.exclusion.is_active %}
+                                        <span class="badge badge-warning">
+                                            <i class="bi bi-shield-fill-check"></i> Excluida
+                                        </span>
+                                    {% else %}
+                                        <span class="badge badge-danger">
+                                            <i class="bi bi-x-circle-fill"></i> Fallida
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: center;">
+                                    <div class="action-buttons" style="justify-content: center;">
+                                        <!-- Ver detalles de política -->
+                                        <a href="/admin/compliance/benchmarkpolicy/{{ policy.policy_id }}/change/" 
+                                           class="btn btn-outline btn-sm tooltip"
+                                           target="_blank"
+                                           title="Ver detalles de la política">
+                                            <i class="bi bi-eye"></i>
+                                            <span class="tooltiptext">Ver política</span>
+                                        </a>
+                                        
+                                        {% if policy.exclusion %}
+                                            <!-- Ver justificación -->
+                                            <a href="{% url 'policy_justification_view' policy.exclusion.id %}" 
+                                               class="btn btn-outline btn-sm tooltip"
+                                               title="Ver justificación">
+                                                <i class="bi bi-file-text"></i>
+                                                <span class="tooltiptext">Ver justificación</span>
+                                            </a>
+                                            
+                                            <!-- Editar justificación -->
+                                            <a href="{% url 'policy_justification_edit' policy.exclusion.id %}" 
+                                               class="btn btn-warning btn-sm tooltip"
+                                               title="Editar justificación">
+                                                <i class="bi bi-pencil"></i>
+                                                <span class="tooltiptext">Editar</span>
+                                            </a>
+                                            
+                                            <!-- Activar/Desactivar -->
+                                            <form method="post" action="{% url 'policy_justification_toggle' policy.exclusion.id %}" style="display: inline;">
+                                                {% csrf_token %}
+                                                {% if policy.exclusion.is_active %}
+                                                    <button type="submit" class="btn btn-secondary btn-sm tooltip" title="Desactivar justificación">
+                                                        <i class="bi bi-toggle-on"></i>
+                                                        <span class="tooltiptext">Desactivar</span>
+                                                    </button>
+                                                {% else %}
+                                                    <button type="submit" class="btn btn-success btn-sm tooltip" title="Activar justificación">
+                                                        <i class="bi bi-toggle-off"></i>
+                                                        <span class="tooltiptext">Activar</span>
+                                                    </button>
+                                                {% endif %}
+                                            </form>
+                                            
+                                            <!-- Eliminar -->
+                                            <a href="{% url 'policy_justification_delete' policy.exclusion.id %}" 
+                                               class="btn btn-outline btn-sm tooltip"
+                                               style="color: #ef4444; border-color: #ef4444;"
+                                               title="Eliminar justificación">
+                                                <i class="bi bi-trash"></i>
+                                                <span class="tooltiptext">Eliminar</span>
+                                            </a>
+                                        {% else %}
+                                            <!-- Crear justificación -->
+                                            <a href="{% url 'policy_justification_create' asset.id policy.layer_id policy.policy_id %}" 
+                                               class="btn btn-warning btn-sm tooltip"
+                                               title="Justificar esta política">
+                                                <i class="bi bi-file-plus"></i> Justificar
+                                                <span class="tooltiptext">Crear justificación</span>
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div style="margin-top: 1rem; padding: 0.75rem; background: #f9fafb; border-radius: 6px; font-size: 0.875rem; color: #6b7280;">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Nota:</strong> Las justificaciones son registros documentales que permiten explicar por qué una política no se cumple. 
+                    Pueden activarse, desactivarse o eliminarse. La justificación se mantiene para escaneos actuales y futuros.
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-check-circle" style="color: #10b981;"></i>
+                    <p style="color: #10b981; font-weight: 600;">¡Excelente! No hay políticas fallidas</p>
+                    <p>Este asset cumple con todas las políticas evaluadas</p>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Baselines -->
+        {% if baselines %}
+        <div class="content-card">
+            <div class="section-header">
+                <h3><i class="bi bi-graph-up text-blue-600"></i> Líneas Base</h3>
+            </div>
+            
+            <div style="overflow-x: auto;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Capa</th>
+                            <th style="text-align: center;">Línea Base</th>
+                            <th style="text-align: center;">Tipo</th>
+                            <th style="text-align: center;">Establecida</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for baseline in baselines %}
+                        <tr>
+                            <td>
+                                <span class="layer-badge layer-{{ baseline.layer.layer_type|lower }}">
+                                    {{ baseline.layer.get_layer_type_display }}
+                                </span>
+                            </td>
+                            <td style="text-align: center;">
+                                <span class="badge badge-info">{{ baseline.compliance_percentage|floatformat:2 }}%</span>
+                            </td>
+                            <td style="text-align: center;">
+                                {% if baseline.is_manual %}
+                                    <span class="badge badge-warning">
+                                        <i class="bi bi-pencil"></i> Manual
+                                    </span>
+                                {% else %}
+                                    <span class="badge badge-success">
+                                        <i class="bi bi-robot"></i> Automática
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: center;">{{ baseline.set_at|date:"d/m/Y" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Actions -->
+        <div style="text-align: center; margin-top: 3rem;">
+            <a href="/compliance/assets/" class="btn btn-primary">
+                <i class="bi bi-arrow-left"></i> Volver a Assets
+            </a>
+            <a href="/admin/compliance/asset/{{ asset.id }}/change/" class="btn btn-outline" target="_blank" style="margin-left: 1rem;">
+                <i class="bi bi-pencil"></i> Editar Asset
+            </a>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_scripts %}
+    <!-- Chart.js con soporte para fechas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    
+    <script>
+        // ============================================================
+        // TIMELINE CHART - COMPLIANCE EVOLUTION
+        // ============================================================
+        
+        let timelineChart = null;
+        
+        async function loadTimelineChart() {
+            const container = document.getElementById('timelineChartContainer');
+            const canvas = document.getElementById('timelineChart');
+            const loadingDiv = container.querySelector('.chart-loading');
+            
+            try {
+                console.log('🔄 Iniciando carga del timeline chart...');
+                console.log('📊 Chart.js disponible:', typeof Chart !== 'undefined');
+                
+                // Verificar que Chart.js esté cargado
+                if (typeof Chart === 'undefined') {
+                    throw new Error('Chart.js no está cargado. Verifica que el CDN esté accesible.');
+                }
+                
+                // Mostrar loading
+                loadingDiv.style.display = 'flex';
+                canvas.style.display = 'none';
+                
+                // Fetch data
+                const url = "{% url 'api_asset_compliance_timeline' asset.id %}";
+                console.log('📡 Fetching URL:', url);
+                
+                const response = await fetch(url);
+                console.log('📥 Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('✅ Data received:', data);
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Error al cargar datos');
+                }
+                
+                // Verificar si hay datos
+                if (!data.timeline || Object.keys(data.timeline).length === 0) {
+                    console.log('⚠️ No hay datos de timeline');
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="bi bi-graph-up"></i>
+                            <p>No hay datos de escaneos en los últimos 3 meses</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                console.log('📊 Preparando datasets...');
+                
+                // Preparar datasets
+                const datasets = [];
+                const colorPalette = [
+                    { line: '#3b82f6', baseline: '#93c5fd' },  // Blue
+                    { line: '#10b981', baseline: '#6ee7b7' },  // Green
+                    { line: '#f59e0b', baseline: '#fcd34d' },  // Orange
+                    { line: '#ef4444', baseline: '#fca5a5' },  // Red
+                    { line: '#8b5cf6', baseline: '#c4b5fd' },  // Purple
+                ];
+                
+                let colorIndex = 0;
+                
+                for (const [layerName, layerData] of Object.entries(data.timeline)) {
+                    const colors = colorPalette[colorIndex % colorPalette.length];
+                    colorIndex++;
+                    
+                    console.log(`  ➡️ Procesando capa: ${layerName}, scans: ${layerData.scans.length}`);
+                    
+                    // Dataset de compliance
+                    datasets.push({
+                        label: layerName,
+                        data: layerData.scans.map(scan => ({
+                            x: scan.date,
+                            y: scan.compliance
+                        })),
+                        borderColor: colors.line,
+                        backgroundColor: colors.line + '20',
+                        borderWidth: 3,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: colors.line,
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        tension: 0.3,
+                        fill: false
+                    });
+                    
+                    // Dataset de baseline (línea punteada)
+                    if (layerData.baseline !== null) {
+                        datasets.push({
+                            label: `${layerName} (Baseline)`,
+                            data: layerData.scans.map(scan => ({
+                                x: scan.date,
+                                y: layerData.baseline
+                            })),
+                            borderColor: colors.baseline,
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            pointHoverRadius: 0,
+                            fill: false,
+                            tension: 0
+                        });
+                    }
+                }
+                
+                console.log(`📈 Total datasets creados: ${datasets.length}`);
+                
+                // Crear gráfico
+                const ctx = canvas.getContext('2d');
+                
+                if (timelineChart) {
+                    timelineChart.destroy();
+                }
+                
+                timelineChart = new Chart(ctx, {
+                    type: 'line',
+                    data: { datasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        aspectRatio: 2.5,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        plugins: {
+                            title: {
+                                display: false
+                            },
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: {
+                                    padding: 15,
+                                    font: {
+                                        size: 12,
+                                        weight: '600'
+                                    },
+                                    usePointStyle: true,
+                                    pointStyle: 'line',
+                                    filter: function(item, chart) {
+                                        return !item.text.includes('(Baseline)');
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleColor: '#fff',
+                                bodyColor: '#fff',
+                                borderColor: '#666',
+                                borderWidth: 1,
+                                padding: 12,
+                                displayColors: true,
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label.includes('(Baseline)')) {
+                                            label = label.replace(' (Baseline)', ' - Baseline');
+                                        }
+                                        return label + ': ' + context.parsed.y.toFixed(2) + '%';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                type: 'time',
+                                time: {
+                                    unit: 'day',
+                                    displayFormats: {
+                                        day: 'MMM dd'
+                                    },
+                                    tooltipFormat: 'MMM dd, yyyy'
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Fecha del Escaneo',
+                                    font: {
+                                        size: 13,
+                                        weight: '600'
+                                    }
+                                },
+                                grid: {
+                                    display: true,
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            y: {
+                                beginAtZero: false,
+                                min: 60,
+                                max: 100,
+                                title: {
+                                    display: true,
+                                    text: 'Compliance (%)',
+                                    font: {
+                                        size: 13,
+                                        weight: '600'
+                                    }
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + '%';
+                                    }
+                                },
+                                grid: {
+                                    display: true,
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                console.log('✅ Gráfico creado exitosamente');
+                
+                // Ocultar loading y mostrar chart
+                loadingDiv.style.display = 'none';
+                canvas.style.display = 'block';
+                
+            } catch (error) {
+                console.error('❌ Error loading timeline chart:', error);
+                console.error('Error details:', error.message);
+                console.error('Stack:', error.stack);
+                
+                container.innerHTML = `
+                    <div class="chart-error">
+                        <i class="bi bi-exclamation-triangle"></i> &nbsp; 
+                        Error al cargar el gráfico: ${error.message}
+                        <br><small style="font-size: 0.75rem; margin-top: 0.5rem; display: block;">Revisa la consola del navegador para más detalles</small>
+                    </div>
+                `;
+            }
+        }
+        
+        // IMPORTANTE: Esperar a que se carguen las librerías
+        window.addEventListener('load', function() {
+            console.log('🚀 Window loaded, verificando Chart.js...');
+            console.log('📊 Chart disponible:', typeof Chart !== 'undefined');
+            
+            // Pequeño delay para asegurar que los scripts CDN se cargaron
+            setTimeout(() => {
+                loadTimelineChart();
+            }, 100);
+        });    
+
+
+
+
+
+
+
+        // Filter policies by layer
+        const layerFilter = document.getElementById('layerFilter');
+        if (layerFilter) {
+            layerFilter.addEventListener('change', function() {
+                const selectedLayer = this.value;
+                const tableRows = document.querySelectorAll('#failedPoliciesTable tbody tr');
+                
+                tableRows.forEach(row => {
+                    if (selectedLayer === 'all' || row.dataset.layer === selectedLayer) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        }
+        
+        // Copy table to clipboard
+        function copyTableToClipboard() {
+            const table = document.getElementById('failedPoliciesTable');
+            const rows = Array.from(table.querySelectorAll('tbody tr')).filter(row => row.style.display !== 'none');
+            
+            let text = '# Política\tNombre Política\tCapa\tEstado\n';
+            
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                const policy = cells[0].textContent.trim();
+                const name = cells[1].textContent.trim().split('\n')[0]; // Solo el título
+                const layer = cells[2].textContent.trim();
+                const status = cells[3].textContent.trim();
+                
+                text += `${policy}\t${name}\t${layer}\t${status}\n`;
+            });
+            
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = event.target.closest('button');
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-check"></i> ¡Copiado!';
+                btn.style.background = '#10b981';
+                btn.style.color = 'white';
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    btn.style.background = '';
+                    btn.style.color = '';
+                }, 2000);
+            }).catch(err => {
+                alert('Error al copiar: ' + err);
+            });
+        }
+        
+        // Export to CSV
+        function exportToCSV() {
+            const table = document.getElementById('failedPoliciesTable');
+            const rows = Array.from(table.querySelectorAll('tbody tr')).filter(row => row.style.display !== 'none');
+            
+            let csv = '\uFEFF'; // BOM para UTF-8
+            csv += '"# Política","Nombre Política","Capa","Estado"\n';
+            
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                const policy = cells[0].textContent.trim();
+                const name = cells[1].textContent.trim().split('\n')[0].replace(/"/g, '""');
+                const layer = cells[2].textContent.trim();
+                const status = cells[3].textContent.trim();
+                
+                csv += `"${policy}","${name}","${layer}","${status}"\n`;
+            });
+            
+            // Create download link
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            const hostname = '{{ asset.hostname }}';
+            const timestamp = new Date().toISOString().split('T')[0];
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', `politicas_fallidas_${hostname}_${timestamp}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+  
+
+    </script>
+{% endblock %}

@@ -1,0 +1,414 @@
+"""
+Servicio para importar resultados de Nessus desde CSV
+"""
+import logging
+import pandas as pd
+import re
+from typing import Dict, List, Tuple, Optional
+from datetime import date
+from django.db import transaction
+from django.utils import timezone
+from compliance.models import (
+    Asset, AssetLayer, Scan, ScanResult, BenchmarkPolicy,
+    Baseline, Alert, Threshold
+)
+from compliance.validators import validate_csv_file
+from decimal import Decimal
+
+
+logger = logging.getLogger('compliance')
+
+
+class NessusImportService:
+    """Servicio para importar escaneos de Nessus desde CSV"""
+    
+    # Mapeo de Risk en CSV a nuestro modelo
+    RISK_MAPPING = {
+        'None': 'INFO',
+        'Passed': 'PASSED',
+        'Failed': 'FAILED',
+        'Warning': 'WARNING',
+    }
+    
+    def __init__(self):
+        self.errors = []
+        self.warnings = []
+        self.stats = {
+            'total_rows': 0,
+            'filtered_info': 0,
+            'imported': 0,
+            'matched': 0,
+            'unmatched': 0,
+            'errors': 0,
+            'hosts_found': [],
+        }
+        self.processed_policies = set()  # Para evitar duplicados
+    
+    def import_nessus_scan(
+        self, 
+        file, 
+        asset: Asset, 
+        layer: AssetLayer, 
+        scan_date: date
+    ) -> Tuple[Scan, Dict]:
+        """
+        Importa un escaneo de Nessus desde CSV
+        """
+        try:
+            # Validar archivo
+            file.seek(0)
+            validate_csv_file(file)
+            file.seek(0)
+            
+            # Crear el Scan
+            scan = Scan.objects.create(
+                asset=asset,
+                layer=layer,
+                scan_date=scan_date,
+                csv_file=file
+            )
+            
+            logger.info(f"Scan creado: {scan}")
+            
+            # Leer el archivo desde el disco
+            with scan.csv_file.open('r') as csv_file:
+                logger.info(f"Leyendo archivo desde: {scan.csv_file.path}")
+                self._process_csv(csv_file, scan, layer)
+            
+            # Calcular métricas del scan
+            self._calculate_scan_metrics(scan)
+            
+            # Actualizar línea base si es necesario
+            self._update_baseline(scan)
+            
+            # Generar alertas
+            self._generate_alerts(scan)
+            
+            return scan, self.stats
+            
+        except Exception as e:
+            logger.error(f"Error al importar scan: {str(e)}")
+            self.errors.append(f"Error general: {str(e)}")
+            if 'scan' in locals():
+                scan.delete()
+            raise
+    
+    @transaction.atomic
+    def _process_csv(self, file, scan: Scan, layer: AssetLayer):
+        """Procesa el archivo CSV y crea los resultados"""
+        
+        try:
+            # Leer CSV con pandas
+            df = pd.read_csv(
+                file, 
+                encoding='utf-8',
+                sep=',',
+                quotechar='"',
+                escapechar='\\',
+                engine='python',
+                on_bad_lines='skip',
+                skipinitialspace=True,
+            )
+            
+            # Normalizar nombres de columnas
+            df.columns = df.columns.str.strip()
+            
+            logger.info(f"CSV leído: {len(df)} filas")
+            logger.info(f"Columnas: {list(df.columns)}")
+            self.stats['total_rows'] = len(df)
+            
+            # Verificar columnas requeridas
+            required_columns = ['Risk', 'Description', 'Plugin Output']
+            missing_columns = [col for col in required_columns if col not in df.columns]
+            
+            if missing_columns:
+                raise ValueError(f"Columnas requeridas faltantes: {missing_columns}")
+            
+            # Filtrar filas con Risk = "None" (informativos)
+            df_filtered = df[df['Risk'] != 'None'].copy()
+            self.stats['filtered_info'] = len(df) - len(df_filtered)
+            
+            logger.info(f"Después de filtrar informativos: {len(df_filtered)} filas")
+            
+            # Extraer hosts únicos
+            hosts = self._extract_hosts_from_df(df_filtered)
+            self.stats['hosts_found'] = hosts
+            logger.info(f"Hosts encontrados: {hosts}")
+            
+            # Resetear set de políticas procesadas
+            self.processed_policies.clear()
+            
+            # Procesar cada fila
+            for idx, row in df_filtered.iterrows():
+                try:
+                    self._process_row(idx, row, scan, layer)
+                    
+                except Exception as e:
+                    logger.error(f"Error en fila {idx}: {str(e)}")
+                    self.errors.append(f"Fila {idx}: {str(e)}")
+                    self.stats['errors'] += 1
+            
+            logger.info(f"Procesamiento completado: {self.stats}")
+            
+        except pd.errors.EmptyDataError:
+            raise ValueError("El archivo CSV está vacío")
+        except pd.errors.ParserError as e:
+            raise ValueError(f"Error al parsear el CSV: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error al procesar CSV: {str(e)}")
+            raise
+    
+    def _process_row(self, idx: int, row: pd.Series, scan: Scan, layer: AssetLayer):
+        """Procesa una fila individual del CSV"""
+        
+        # Extraer datos (manejar valores NaN/None)
+        plugin_id = str(row.get('Plugin ID', '')).strip() if pd.notna(row.get('Plugin ID')) else ''
+        risk = str(row.get('Risk', '')).strip() if pd.notna(row.get('Risk')) else ''
+        description = str(row.get('Description', '')).strip() if pd.notna(row.get('Description')) else ''
+        plugin_output = str(row.get('Plugin Output', '')).strip() if pd.notna(row.get('Plugin Output')) else ''
+        
+        # Log para debugging
+        if idx < 5:  # Solo las primeras 5 filas
+            logger.debug(f"Fila {idx} - Risk del CSV: '{risk}' | Description: {description[:60]}")
+        
+        # Validar datos mínimos
+        if not description or not risk:
+            self.warnings.append(f"Fila {idx}: Datos incompletos, se omite")
+            return
+        
+        # Hacer matching con política del benchmark
+        policy = self._match_policy(description, layer.benchmark)
+        
+        if policy:
+            # Verificar si ya procesamos esta política para este scan
+            if policy.id in self.processed_policies:
+                logger.debug(f"Política {policy.recommendation} ya procesada, se omite duplicado")
+                return
+            
+            # Crear ScanResult
+            self._create_scan_result(
+                scan=scan,
+                policy=policy,
+                plugin_id=plugin_id,
+                risk=risk,
+                description=description,
+                plugin_output=plugin_output
+            )
+            
+            # Marcar como procesada
+            self.processed_policies.add(policy.id)
+            
+            self.stats['matched'] += 1
+            self.stats['imported'] += 1
+        else:
+            self.stats['unmatched'] += 1
+            # Solo log de warning si no es una línea de encabezado o metadatos
+            if not description.startswith('CIS_') and 'NESA|' not in description:
+                self.warnings.append(
+                    f"Fila {idx}: No match. Description: {description[:80]}"
+                )
+    
+    def _extract_hosts_from_df(self, df: pd.DataFrame) -> List[str]:
+        """Extrae hostnames únicos del Plugin Output"""
+        hosts = set()
+        for plugin_output in df['Plugin Output'].dropna():
+            hostname = self._extract_hostname(str(plugin_output))
+            if hostname:
+                hosts.add(hostname)
+        return sorted(list(hosts))
+    
+    def _extract_hostname(self, plugin_output: str) -> Optional[str]:
+        """Extrae el hostname del Plugin Output"""
+        
+        # Patrón 1: Buscar "Host:" o "Hostname:"
+        match = re.search(r'Host(?:name)?:\s*([^\s\n]+)', plugin_output, re.IGNORECASE)
+        if match:
+            return match.group(1).strip()
+        
+        # Patrón 2: Primera línea
+        lines = plugin_output.split('\n')
+        if lines:
+            first_line = lines[0].strip()
+            match = re.search(r'\b([a-zA-Z0-9][-a-zA-Z0-9.]+[a-zA-Z0-9])\b', first_line)
+            if match:
+                potential_host = match.group(1)
+                if '.' in potential_host or '-' in potential_host:
+                    return potential_host
+        
+        return None
+    
+    def _match_policy(self, description: str, benchmark) -> Optional[BenchmarkPolicy]:
+        """
+        Hace matching entre Description del CSV y políticas del benchmark
+        
+        Formato esperado en CSV:
+        "1.1.1.7 Ensure udf kernel module is not available" : [PASSED]
+        o
+        1.1.1.7 Ensure udf kernel module is not available" : [PASSED]  (con comilla extra)
+        """
+        
+        # PASO 1: Limpiar description AGRESIVAMENTE
+        desc = description.strip()
+        
+        # Remover el sufijo ": [STATUS]" 
+        desc = re.sub(r'\s*:\s*\[(?:PASSED|FAILED|WARNING|INFO)\].*$', '', desc, flags=re.IGNORECASE)
+        
+        # Remover TODAS las comillas (dobles y simples) del inicio y fin
+        desc = desc.strip('"\'')
+        
+        # Remover comillas que puedan quedar en medio antes del ":"
+        desc = desc.replace('" :', ' :').replace('":', ':')
+        
+        # Limpiar espacios múltiples
+        desc = ' '.join(desc.split())
+        
+        logger.debug(f"Description limpia: {desc[:80]}")
+        
+        # PASO 2: Extraer el número de recomendación
+        # Patrón mejorado: captura números al inicio incluso con variaciones
+        pattern = r'^([\d.]+)\s+(.+)$'
+        match = re.match(pattern, desc)
+        
+        if match:
+            recommendation = match.group(1).strip()
+            title_part = match.group(2).strip()
+            
+            logger.debug(f"Recommendation extraída: '{recommendation}' | Title: '{title_part[:50]}'")
+            
+            # BÚSQUEDA PRINCIPAL: Por recommendation (campo clave)
+            policy = BenchmarkPolicy.objects.filter(
+                benchmark=benchmark,
+                recommendation=recommendation
+            ).first()
+            
+            if policy:
+                logger.debug(f"✓ Política encontrada por recommendation: {policy.section} {policy.recommendation}")
+                return policy
+            else:
+                logger.debug(f"✗ No se encontró con recommendation='{recommendation}'")
+        else:
+            logger.debug(f"✗ No se pudo extraer recommendation del pattern: {desc[:80]}")
+        
+        # FALLBACK 1: Buscar por título completo (sin los números)
+        title_only = re.sub(r'^[\d.\s]+', '', desc).strip()
+        if title_only and len(title_only) > 10:
+            policy = BenchmarkPolicy.objects.filter(
+                benchmark=benchmark,
+                title__iexact=title_only
+            ).first()
+            
+            if policy:
+                logger.debug(f"✓ Encontrada por título exacto: {policy}")
+                return policy
+        
+        # FALLBACK 2: Buscar por título parcial (primeros 30 caracteres)
+        if title_only and len(title_only) > 30:
+            policy = BenchmarkPolicy.objects.filter(
+                benchmark=benchmark,
+                title__icontains=title_only[:30]
+            ).first()
+            
+            if policy:
+                logger.debug(f"✓ Encontrada por título parcial: {policy}")
+                return policy
+        
+        # No se encontró
+        logger.warning(f"✗ No match para: {desc[:100]}")
+        return None
+    
+    def _create_scan_result(
+        self, 
+        scan: Scan, 
+        policy: BenchmarkPolicy, 
+        plugin_id: str,
+        risk: str,
+        description: str,
+        plugin_output: str
+    ):
+        """Crea un ScanResult"""
+        
+        # Normalizar risk (case-insensitive)
+        risk_normalized = risk.strip().capitalize() if risk else ''
+        
+        # Si no está en el mapeo, intentar extraer del description como fallback
+        if risk_normalized not in self.RISK_MAPPING:
+            # Buscar [PASSED], [FAILED], [WARNING] en el description
+            match = re.search(r'\[(PASSED|FAILED|WARNING|INFO)\]', description, re.IGNORECASE)
+            if match:
+                risk_normalized = match.group(1).capitalize()
+                logger.debug(f"Risk extraído del description: {risk_normalized}")
+        
+        # Mapear risk a nuestro modelo
+        risk_mapped = self.RISK_MAPPING.get(risk_normalized, 'INFO')
+        
+        logger.debug(f"Risk original: '{risk}' → Normalizado: '{risk_normalized}' → Mapeado: '{risk_mapped}'")
+        
+        result = ScanResult.objects.create(
+            scan=scan,
+            policy=policy,
+            plugin_id=plugin_id,
+            risk=risk_mapped,
+            description=description,
+            plugin_output=plugin_output
+        )
+        
+        logger.debug(f"ScanResult creado: {policy.section} [{risk_mapped}]")
+        return result
+    
+    def _calculate_scan_metrics(self, scan: Scan):
+        """Calcula métricas del scan"""
+        
+        results = scan.results.all()
+        
+        scan.total_policies = results.count()
+        scan.passed_count = results.filter(risk='PASSED').count()
+        scan.failed_count = results.filter(risk='FAILED').count()
+        scan.warning_count = results.filter(risk='WARNING').count()
+        compliance = scan.calculate_compliance()
+        scan.compliance_percentage = Decimal(str(compliance))  # Asegurar Decimal
+        scan.save()
+        
+        logger.info(
+            f"Métricas - Total: {scan.total_policies}, "
+            f"Passed: {scan.passed_count}, Failed: {scan.failed_count}, "
+            f"Warning: {scan.warning_count}, Compliance: {scan.compliance_percentage}%"
+        )
+    
+    def _update_baseline(self, scan: Scan):
+        """Actualiza la línea base si el nuevo compliance es mayor"""
+        
+        baseline, created = Baseline.objects.get_or_create(
+            asset=scan.asset,
+            layer=scan.layer,
+            defaults={
+                'compliance_percentage': scan.compliance_percentage,
+                'scan_reference': scan,
+                'is_manual': False
+            }
+        )
+        
+        if not created and not baseline.is_manual:
+            scan_compliance = Decimal(str(scan.compliance_percentage))
+            baseline_val = Decimal(str(baseline.compliance_percentage))
+            if scan_compliance > baseline_val:
+                baseline.compliance_percentage = scan_compliance
+                baseline.scan_reference = scan
+                baseline.set_at = timezone.now()
+                baseline.save()
+                logger.info(f"Línea base actualizada a {scan.compliance_percentage}%")
+    
+    def _generate_alerts(self, scan: Scan):
+        """Genera alertas basadas en el nuevo escaneo"""
+        from compliance.services.alert_service import AlertService
+        
+        alert_service = AlertService()
+        alert_service.check_and_create_alerts(scan)
+    
+    def get_report(self) -> dict:
+        """Retorna un reporte de la importación"""
+        return {
+            'success': self.stats['errors'] == 0,
+            'stats': self.stats,
+            'errors': self.errors,
+            'warnings': self.warnings
+        }

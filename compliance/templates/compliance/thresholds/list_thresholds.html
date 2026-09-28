@@ -1,0 +1,272 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }} - Compliance CIS</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header (Navbar reutilizable) -->
+    <nav class="bg-blue-600 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-bold">Sistema de Compliance CIS</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'assets_list' %}" class="hover:bg-blue-700 px-3 py-2 rounded-md text-sm font-medium">
+                        <i class="bi bi-hdd-stack"></i> Assets
+                    </a>
+                    <a href="{% url 'compliance_dashboard' %}" class="hover:bg-blue-700 px-3 py-2 rounded-md text-sm font-medium">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                    <a href="{% url 'alerts_list' %}" class="hover:bg-blue-700 px-3 py-2 rounded-md text-sm font-medium">
+                        <i class="bi bi-bell"></i> Alertas
+                    </a>
+                    <a href="{% url 'thresholds_list' %}" class="bg-blue-700 px-3 py-2 rounded-md text-sm font-medium">
+                        <i class="bi bi-sliders"></i> Umbrales
+                    </a>
+                    <div class="relative group">
+                        <button class="hover:bg-blue-700 px-3 py-2 rounded-md text-sm font-medium">
+                            <i class="bi bi-person-circle"></i> {{ user.username }}
+                        </button>
+                        <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden group-hover:block z-10">
+                            <a href="{% url 'profile' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <i class="bi bi-person"></i> Mi Perfil
+                            </a>
+                            {% if user.is_superuser or user.groups.filter(name='Administradores').exists %}
+                                <a href="{% url 'users_list' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <i class="bi bi-people"></i> Usuarios
+                                </a>
+                            {% endif %}
+                            <a href="{% url 'logout' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        
+        <!-- Header -->
+        <div class="mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900">{{ page_title }}</h2>
+                    <p class="text-gray-600 mt-1">Configuración de umbrales del sistema</p>
+                </div>
+                {% if user.is_superuser or user.groups.filter(name='Administradores').exists %}
+                    <a href="{% url 'threshold_create' %}" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition">
+                        <i class="bi bi-plus-circle"></i> Nuevo Umbral
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Mensajes -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="bg-{{ message.tags }}-50 border border-{{ message.tags }}-200 text-{{ message.tags }}-800 px-4 py-3 rounded-lg mb-4 flex items-center">
+                    <i class="bi bi-info-circle mr-2"></i>
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Información de Umbrales -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div class="flex items-start">
+                <i class="bi bi-info-circle text-blue-600 text-xl mr-3 mt-1"></i>
+                <div>
+                    <h4 class="font-semibold text-blue-900 mb-1">¿Qué son los umbrales?</h4>
+                    <p class="text-sm text-blue-800">
+                        Los umbrales son valores configurables que determinan cuándo se generan alertas y 
+                        cómo se clasifica el estado de compliance de los assets. Solo los administradores 
+                        pueden modificar estos valores.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de Umbrales -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="p-6 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <i class="bi bi-sliders text-purple-600"></i>
+                    Umbrales Configurados ({{ thresholds.count }})
+                </h3>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Nombre
+                            </th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Valor
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Descripción
+                            </th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Última Actualización
+                            </th>
+                            {% if user.is_superuser or user.groups.filter(name='Administradores').exists %}
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Acciones
+                                </th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for threshold in thresholds %}
+                        <tr class="hover:bg-gray-50 transition">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="bg-purple-100 rounded-full p-2 mr-3">
+                                        <i class="bi bi-sliders text-purple-600"></i>
+                                    </div>
+                                    <div class="text-sm font-medium text-gray-900">
+                                        {{ threshold.name|title }}
+                                    </div>
+                                </div>
+                            </td>
+                            
+                            <td class="px-6 py-4 text-center">
+                                <div class="inline-flex items-center">
+                                    <span class="text-3xl font-bold text-gradient bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                                        {{ threshold.value }}%
+                                    </span>
+                                </div>
+                            </td>
+                            
+                            <td class="px-6 py-4">
+                                <div class="text-sm text-gray-600">
+                                    {{ threshold.description|truncatewords:20 }}
+                                </div>
+                            </td>
+                            
+                            <td class="px-6 py-4 text-center text-sm text-gray-500">
+                                <div>{{ threshold.updated_at|date:"d/m/Y" }}</div>
+                                <div class="text-xs text-gray-400">{{ threshold.updated_at|time:"H:i" }}</div>
+                            </td>
+                            
+                            {% if user.is_superuser or user.groups.filter(name='Administradores').exists %}
+                                <td class="px-6 py-4 text-center text-sm font-medium">
+                                    <a href="{% url 'threshold_edit' threshold.id %}" 
+                                       class="text-indigo-600 hover:text-indigo-900 mr-3"
+                                       title="Editar">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </a>
+                                    <a href="{% url 'threshold_delete' threshold.id %}" 
+                                       class="text-red-600 hover:text-red-900"
+                                       title="Eliminar"
+                                       onclick="return confirm('¿Estás seguro de eliminar este umbral?')">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </td>
+                            {% endif %}
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="{% if user.is_superuser or user.groups.filter(name='Administradores').exists %}5{% else %}4{% endif %}" 
+                                class="px-6 py-12 text-center">
+                                <div class="text-gray-400">
+                                    <i class="bi bi-inbox text-4xl mb-3 block"></i>
+                                    <p class="text-lg">No hay umbrales configurados</p>
+                                    {% if user.is_superuser or user.groups.filter(name='Administradores').exists %}
+                                        <a href="{% url 'threshold_create' %}" class="text-purple-600 hover:text-purple-800 mt-2 inline-block">
+                                            <i class="bi bi-plus-circle"></i> Crear el primero
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Card de Umbrales Importantes -->
+        <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+            {% for threshold in thresholds %}
+                <div class="bg-white rounded-lg shadow p-6 border-l-4 {% if threshold.value >= 90 %}border-green-500{% elif threshold.value >= 70 %}border-yellow-500{% else %}border-red-500{% endif %}">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="font-semibold text-gray-900">{{ threshold.name|title }}</h4>
+                        <span class="text-2xl font-bold {% if threshold.value >= 90 %}text-green-600{% elif threshold.value >= 70 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                            {{ threshold.value }}%
+                        </span>
+                    </div>
+                    <p class="text-sm text-gray-600">{{ threshold.description }}</p>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Información Adicional -->
+        <div class="mt-6 bg-gray-50 rounded-lg p-6">
+            <h4 class="font-semibold text-gray-900 mb-3">
+                <i class="bi bi-lightbulb text-yellow-500"></i>
+                Consejos de Configuración
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
+                <div class="flex items-start">
+                    <i class="bi bi-check-circle text-green-600 mr-2 mt-1"></i>
+                    <div>
+                        <strong>Hardening Threshold:</strong> Establece el mínimo de compliance para considerar un asset hardenizado (recomendado: 90%)
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <i class="bi bi-check-circle text-green-600 mr-2 mt-1"></i>
+                    <div>
+                        <strong>Critical Degradation:</strong> Porcentaje de caída que genera alerta crítica (recomendado: 5%)
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <i class="bi bi-check-circle text-green-600 mr-2 mt-1"></i>
+                    <div>
+                        <strong>Warning Threshold:</strong> Nivel mínimo antes de generar advertencias (recomendado: 85%)
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <i class="bi bi-check-circle text-green-600 mr-2 mt-1"></i>
+                    <div>
+                        <strong>Baseline Tolerance:</strong> Margen permitido antes de alertar caída de línea base (recomendado: 2%)
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botón de volver -->
+        <div class="mt-6 text-center">
+            <a href="{% url 'assets_list' %}" class="text-blue-600 hover:text-blue-800">
+                <i class="bi bi-arrow-left"></i> Volver a Assets
+            </a>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-12">
+        <div class="max-w-7xl mx-auto px-4 py-6 text-center text-sm text-gray-500">
+            <p>Sistema de Compliance CIS &copy; 2025 - Todos los derechos reservados</p>
+        </div>
+    </footer>
+</body>
+</html>
