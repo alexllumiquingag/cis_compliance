@@ -1,0 +1,27 @@
+name: HCL AppScan 360 SAST Scan
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  appscan-sast:
+    # Fuerza a GitHub a enviar la tarea a tu máquina virtual local
+    runs-on: self-hosted
+    
+    steps:
+      - name: Descargar Código Fuente
+        uses: actions/checkout@v4
+
+      - name: Ejecutar Escaneo SAST en AppScan 360
+        uses: HCL-TECH-SOFTWARE/appscan-sast-action@v1
+        with:
+          asoc_key: ${{ secrets.APPSCAN_KEY }}
+          asoc_secret: ${{ secrets.APPSCAN_SECRET }}
+          application_id: ${{ secrets.APPSCAN_APP_ID }}
+          # Usamos la ruta local interna del servidor
+          service_url: "https://ubuntu2404.appscan.local"
+          # Parámetro crítico que ignora de forma estricta el certificado SSL autofirmado
+          acceptssl: true
+          scan_name: "GitHub_Local_SAST_Django"
+
