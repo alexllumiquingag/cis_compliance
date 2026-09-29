@@ -16,9 +16,9 @@ jobs:
       - name: Ejecutar Escaneo SAST en AppScan 360
         uses: HCL-TECH-SOFTWARE/appscan-sast-action@v1
         with:
-          asoc_key: ${{ secrets.APPSCAN_KEY }}
-          asoc_secret: ${{ secrets.APPSCAN_SECRET }}
-          application_id: ${{ secrets.APPSCAN_APP_ID }}
+          asoc_key: ${{ secrets.local_91a748c6-dc06-8752-39c8-0da7e9e2d699 }}
+          asoc_secret: ${{ secrets.ITDGKPmGNz30dgdGTrP7saRqxT4gETR4JaVwjsZz2zVR }}
+          application_id: ${{ secrets.Cis_Compliance }}
           # Usamos la ruta local interna del servidor
           service_url: "https://ubuntu2404.appscan.local"
           # Parámetro crítico que ignora de forma estricta el certificado SSL autofirmado
