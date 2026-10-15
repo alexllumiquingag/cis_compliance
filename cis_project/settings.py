@@ -70,9 +70,9 @@ TEMPLATES = [
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env('DB_NAME', default='cis_compliance'),
-        'USER': env('DB_USER', default='usercis'),
-        'PASSWORD': env('DB_PASSWORD', default='Progreso2022'),
+        'NAME': env('DB_NAME', default='db_name'),
+        'USER': env('DB_USER', default='db_user'),
+        'PASSWORD': env('DB_PASSWORD', default='passwd_db'),
         'HOST': env('DB_HOST', default='localhost'),
         'PORT': env('DB_PORT', default='5432'),
     }
